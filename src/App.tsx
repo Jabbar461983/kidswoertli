@@ -7,6 +7,8 @@ import { LanguageSelector } from '@/components/Learning/LanguageSelector'
 import { MediumSelector } from '@/components/Learning/MediumSelector'
 import { QuizPage } from '@/components/Learning/QuizPage'
 import { ResultsPage } from '@/components/Learning/ResultsPage'
+import { CollectionsPage } from '@/components/Collections/CollectionsPage'
+import { AdminPanel } from '@/components/Admin/AdminPanel'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -80,6 +82,22 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ResultsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/collections"
+            element={
+              <ProtectedRoute>
+                <CollectionsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute>
+                <AdminPanel />
               </ProtectedRoute>
             }
           />

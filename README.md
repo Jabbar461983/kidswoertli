@@ -92,12 +92,81 @@ Die Supabase-Migration wird in Phase 2 erstellt.
 - `card_results` - Ergebnisse (Richtig/Falsch)
 - `error_rounds` - Fehler-Durchgänge (bis zu 5 pro Session)
 
-## Nächste Schritte
+## Projekt-Status
 
-- [ ] Phase 1: Projekt-Setup & Auth ✅
-- [ ] Phase 2: Karteikarten-Erfassung (OCR)
-- [ ] Phase 3: Abfragefunktionen & Fehlercontainer
-- [ ] Phase 4: UX & Polish
+- [x] Phase 1: Projekt-Setup & Auth ✅
+- [x] Phase 2: Karteikarten-Erfassung (OCR) ✅
+- [x] Phase 3: Abfragefunktionen & Fehlercontainer ✅
+- [x] Phase 4: UX & Polish ✅
+
+## Quick Start
+
+### Lokale Entwicklung
+
+```bash
+# Dependencies installieren
+npm install
+
+# Environment Setup
+cp .env.example .env.local
+# Füge deine Supabase Credentials in .env.local ein
+
+# Dev-Server starten
+npm run dev
+```
+
+Öffne `http://localhost:3000` im Browser.
+
+### Supabase Setup
+
+Siehe [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) für detaillierte Anleitung zur Datenbank-Konfiguration.
+
+### Deployment
+
+Siehe [DEPLOYMENT.md](./DEPLOYMENT.md) für Netlify-Deployment-Anleitung.
+
+## Features im MVP
+
+✅ **Bilderfassung & OCR**
+- Tesseract.js für automatische Texterkennung
+- Upload von Fotos oder Kamera
+- Manuelle Bearbeitung erkannter Texte
+
+✅ **Karteikarten-Management**
+- Erstelle Karteikarten mit Metadaten (Buch, Seite, Kapitel)
+- Organisiere in Lernmedien
+- Bearbeiten und Löschen
+
+✅ **Drei Lernmodi**
+- **Schriftlich**: Tippe die Übersetzung
+- **Sprechen**: Sprich die Übersetzung (Speech Recognition)
+- **Lesen**: Übersetze selbst, kontrolliere Antwort
+
+✅ **Fehler-Management**
+- Separate Fehler-Container pro Lernrunde
+- Bis zu 5 Fehler-Durchgänge speichern
+- Fehler-Karteikarten können gelöscht werden
+
+✅ **Motivations-Features**
+- Motivationsmeldungen nach jeder Frage
+- Witze von JokeAPI nach Abschluss
+- Erfolgsquoten mit Feedback
+
+✅ **Multi-User**
+- Benutzer-Authentifizierung via Supabase
+- Benutzername + Passwort
+- Admin-Panel für Passwort-Reset
+
+✅ **PWA Features**
+- Offline-Funktionalität (geplant)
+- Installierbar auf Mobile/Desktop
+- Manifest.json für App-Shortcuts
+- Dark Mode Support
+
+✅ **Longchamp Design**
+- Elegant und modern
+- Schwarz/Gold/Elfenbein Farbschema
+- Responsive für Mobile (Mobile-First)
 
 ## Lizenz
 
