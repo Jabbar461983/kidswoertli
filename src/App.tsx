@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { LoginPage } from '@/components/Auth/LoginPage'
 import { DashboardPage } from '@/components/Dashboard/DashboardPage'
+import { CardCapturePage } from '@/components/CardCapture/CardCapturePage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -35,6 +36,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/capture"
+            element={
+              <ProtectedRoute>
+                <CardCapturePage />
               </ProtectedRoute>
             }
           />
