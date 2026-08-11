@@ -3,6 +3,10 @@ import { AuthProvider, useAuth } from '@/context/AuthContext'
 import { LoginPage } from '@/components/Auth/LoginPage'
 import { DashboardPage } from '@/components/Dashboard/DashboardPage'
 import { CardCapturePage } from '@/components/CardCapture/CardCapturePage'
+import { LanguageSelector } from '@/components/Learning/LanguageSelector'
+import { MediumSelector } from '@/components/Learning/MediumSelector'
+import { QuizPage } from '@/components/Learning/QuizPage'
+import { ResultsPage } from '@/components/Learning/ResultsPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -44,6 +48,38 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <CardCapturePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn"
+            element={
+              <ProtectedRoute>
+                <LanguageSelector />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/medium/:mediumId/:language"
+            element={
+              <ProtectedRoute>
+                <MediumSelector />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/quiz/:mediumId/:language/:mode"
+            element={
+              <ProtectedRoute>
+                <QuizPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/learn/results/:sessionId"
+            element={
+              <ProtectedRoute>
+                <ResultsPage />
               </ProtectedRoute>
             }
           />
