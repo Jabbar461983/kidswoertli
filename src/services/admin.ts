@@ -1,5 +1,4 @@
 import { supabase, supabaseAuth } from './supabase'
-import { User } from '@/types'
 
 export const adminService = {
   // Verify admin credentials (hardcoded for now)
@@ -45,28 +44,26 @@ export const adminService = {
 
   // Create new user
   async createUser(email: string, password: string, username?: string) {
-    try {
-      const finalUsername = username || email.split('@')[0]
+    const finalUsername = username || email.split('@')[0]
 
-      // Create auth user
-      const { data, error } = await supabaseAuth.signUp(email, password, finalUsername)
-      if (error) throw error
+    // Create auth user
+    const { data, error } = await supabaseAuth.signUp(email, password, finalUsername)
+    if (error) throw error
 
-      if (data.user) {
-        // Create user record
-        const { error: insertError } = await supabase.from('users').insert({
-          id: data.user.id,
-          username: finalUsername,
-          email: email,
-          is_admin: false,
-        })
-
-        if (insertError) throw insertError
-        return data.user
-      }
-    } catch (error) {
-      throw error
+    if (!data.user) {
+      throw new Error('User creation failed')
     }
+
+    // Create user record
+    const { error: insertError } = await supabase.from('users').insert({
+      id: data.user.id,
+      username: finalUsername,
+      email: email,
+      is_admin: false,
+    })
+
+    if (insertError) throw insertError
+    return data.user
   },
 
   // Update user
