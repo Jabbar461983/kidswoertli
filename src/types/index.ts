@@ -24,7 +24,7 @@ export interface Card {
   page: number
   chapter: string
   german: string
-  foreign: string
+  foreign_text: string
   language: Language
   created_at: string
   updated_at: string

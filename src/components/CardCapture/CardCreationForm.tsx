@@ -7,7 +7,7 @@ export interface CardData {
   page: number
   chapter: string
   german: string
-  foreign: string
+  foreign_text: string
   language: Language
 }
 
@@ -34,7 +34,7 @@ export function CardCreationForm({
     page: 1,
     chapter: '',
     german: '',
-    foreign: extractedText,
+    foreign_text: extractedText,
     language: 'fr',
   })
 
@@ -78,7 +78,7 @@ export function CardCreationForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    if (!formData.medium_id || !formData.german || !formData.foreign) {
+    if (!formData.medium_id || !formData.german || !formData.foreign_text) {
       alert('Bitte fülle alle erforderlichen Felder aus')
       return
     }
@@ -230,8 +230,8 @@ export function CardCreationForm({
             {formData.language === 'fr' ? '🇫🇷' : '🇺🇸'} {formData.language === 'fr' ? 'Französisch' : 'Englisch'} *
           </label>
           <textarea
-            value={formData.foreign}
-            onChange={(e) => setFormData({ ...formData, foreign: e.target.value })}
+            value={formData.foreign_text}
+            onChange={(e) => setFormData({ ...formData, foreign_text: e.target.value })}
             placeholder="Text in Fremdsprache..."
             rows={3}
             className="w-full px-4 py-2 border-2 border-longchamp-gold rounded-lg focus:outline-none focus:ring-2 focus:ring-longchamp-gold dark:bg-longchamp-black dark:text-longchamp-ivory"

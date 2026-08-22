@@ -77,7 +77,7 @@ export const dbService = {
     page: number,
     chapter: string,
     german: string,
-    foreign: string,
+    foreign_text: string,
     language: Language
   ): Promise<Card> {
     const { data, error } = await supabase
@@ -87,7 +87,7 @@ export const dbService = {
         page,
         chapter,
         german,
-        foreign,
+        foreign_text,
         language,
       })
       .select()

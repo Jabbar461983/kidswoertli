@@ -62,8 +62,8 @@ export function CardQuiz({
     const isCorrect = answer
       .toLowerCase()
       .trim()
-      .includes(card.foreign.toLowerCase().trim()) ||
-      card.foreign.toLowerCase().trim().includes(answer.toLowerCase().trim())
+      .includes(card.foreign_text.toLowerCase().trim()) ||
+      card.foreign_text.toLowerCase().trim().includes(answer.toLowerCase().trim())
 
     const result: CardResult = {
       id: crypto.randomUUID(),
@@ -85,7 +85,7 @@ export function CardQuiz({
   }
 
   const handleMarkCorrect = () => {
-    checkAnswer(card.foreign)
+    checkAnswer(card.foreign_text)
   }
 
   const handleMarkIncorrect = () => {
@@ -183,7 +183,7 @@ export function CardQuiz({
             <div className="bg-longchamp-ivory dark:bg-gray-900 rounded-lg p-6">
               <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">Lösung:</p>
               <p className="text-2xl font-bold text-longchamp-black dark:text-longchamp-ivory">
-                {card.foreign}
+                {card.foreign_text}
               </p>
             </div>
           ) : (
@@ -203,7 +203,7 @@ export function CardQuiz({
         <div className="bg-longchamp-ivory dark:bg-gray-900 rounded-lg p-6 space-y-2">
           <p className="text-sm text-gray-600 dark:text-gray-400">Korrekte Antwort:</p>
           <p className="text-2xl font-bold text-longchamp-black dark:text-longchamp-ivory">
-            {card.foreign}
+            {card.foreign_text}
           </p>
         </div>
       )}
@@ -223,7 +223,7 @@ export function CardQuiz({
 
           {mode === 'read' && showAnswer && (
             <button
-              onClick={() => checkAnswer(userAnswer || card.foreign)}
+              onClick={() => checkAnswer(userAnswer || card.foreign_text)}
               className="flex-1 bg-longchamp-gold hover:bg-longchamp-dark-gold text-longchamp-black font-bold py-3 px-4 rounded-lg"
             >
               Weiter →

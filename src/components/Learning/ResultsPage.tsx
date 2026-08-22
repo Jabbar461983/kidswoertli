@@ -194,7 +194,7 @@ export function ResultsPage() {
                           key={`${round.id}-${cardIdx}`}
                           className="text-sm text-gray-700 dark:text-gray-300 pl-2"
                         >
-                          • {card.german} → {card.foreign}
+                          • {card.german} → {card.foreign_text}
                         </div>
                       ))}
                   </div>

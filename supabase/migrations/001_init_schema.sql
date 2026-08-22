@@ -25,7 +25,7 @@ CREATE TABLE IF NOT EXISTS public.cards (
   page INTEGER NOT NULL,
   chapter TEXT,
   german TEXT NOT NULL,
-  foreign TEXT NOT NULL,
+  foreign_text TEXT NOT NULL,
   language VARCHAR(2) NOT NULL CHECK (language IN ('fr', 'en')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()

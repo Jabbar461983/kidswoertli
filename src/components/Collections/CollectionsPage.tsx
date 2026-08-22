@@ -200,7 +200,7 @@ export function CollectionsPage() {
                                   {card.german}
                                 </p>
                                 <p className="text-gray-600 dark:text-gray-400">
-                                  → {card.foreign}
+                                  → {card.foreign_text}
                                 </p>
                                 {card.chapter && (
                                   <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">

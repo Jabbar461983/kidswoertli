@@ -72,7 +72,7 @@ export function CardCapturePage() {
         cardData.page,
         cardData.chapter,
         cardData.german,
-        cardData.foreign,
+        cardData.foreign_text,
         cardData.language
       )
 
