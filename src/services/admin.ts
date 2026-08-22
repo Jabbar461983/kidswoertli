@@ -48,10 +48,12 @@ export const adminService = {
 
     // Create auth user
     const { data, error } = await supabaseAuth.signUp(email, password, finalUsername)
-    if (error) throw error
+    if (error) {
+      throw new Error(error.message || 'Authentication failed')
+    }
 
     if (!data.user) {
-      throw new Error('User creation failed')
+      throw new Error('User creation failed - no user returned from signup')
     }
 
     // Create user record
@@ -62,7 +64,10 @@ export const adminService = {
       is_admin: false,
     })
 
-    if (insertError) throw insertError
+    if (insertError) {
+      throw new Error(insertError.message || 'Failed to create user record')
+    }
+
     return data.user
   },
 

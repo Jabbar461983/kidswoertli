@@ -55,9 +55,11 @@ export function AdminDashboard() {
       setFormData({ email: '', password: '', username: '' })
       setShowCreateForm(false)
       await loadUsers()
-      alert('Benutzer erstellt!')
+      alert('Benutzer erfolgreich erstellt!')
     } catch (err) {
-      alert('Fehler beim Erstellen: ' + (err instanceof Error ? err.message : 'Unbekannter Fehler'))
+      const errorMsg = err instanceof Error ? err.message : JSON.stringify(err)
+      console.error('Create user error:', err)
+      alert('Fehler beim Erstellen:\n' + errorMsg)
     }
   }
 
