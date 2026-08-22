@@ -10,20 +10,19 @@ if (!supabaseUrl || !supabaseKey) {
 export const supabase = createClient(supabaseUrl, supabaseKey)
 
 export const supabaseAuth = {
-  async signUp(username: string, password: string, email?: string) {
+  async signUp(email: string, password: string, username?: string) {
     return supabase.auth.signUp({
-      email: email || `${username}@kidswoertli.local`,
+      email,
       password,
       options: {
         data: {
-          username,
+          username: username || email.split('@')[0],
         },
       },
     })
   },
 
-  async signIn(username: string, password: string) {
-    const email = `${username}@kidswoertli.local`
+  async signIn(email: string, password: string) {
     return supabase.auth.signInWithPassword({
       email,
       password,

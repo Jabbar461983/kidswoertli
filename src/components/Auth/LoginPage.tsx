@@ -3,8 +3,9 @@ import { useAuth } from '@/context/AuthContext'
 import { useNavigate } from 'react-router-dom'
 
 export function LoginPage() {
-  const [username, setUsername] = useState('')
+  const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [username, setUsername] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [isRegister, setIsRegister] = useState(false)
@@ -18,14 +19,15 @@ export function LoginPage() {
 
     try {
       if (isRegister) {
-        await register(username, password)
-        setUsername('')
+        await register(email, password, username || undefined)
+        setEmail('')
         setPassword('')
+        setUsername('')
         setIsRegister(false)
         setError('')
         alert('Registrierung erfolgreich! Bitte melden Sie sich jetzt an.')
       } else {
-        await login(username, password)
+        await login(email, password)
         navigate('/dashboard')
       }
     } catch (err) {
@@ -60,20 +62,37 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="username" className="block text-sm font-medium mb-2">
-                Benutzername
+              <label htmlFor="email" className="block text-sm font-medium mb-2">
+                E-Mail
               </label>
               <input
-                id="username"
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-2 border-2 border-longchamp-gold rounded-lg focus:outline-none focus:ring-2 focus:ring-longchamp-gold dark:bg-longchamp-black dark:text-longchamp-ivory"
-                placeholder="Dein Benutzername"
+                placeholder="deine@email.de"
                 disabled={loading}
                 required
               />
             </div>
+
+            {isRegister && (
+              <div>
+                <label htmlFor="username" className="block text-sm font-medium mb-2">
+                  Benutzername (optional)
+                </label>
+                <input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-4 py-2 border-2 border-longchamp-gold rounded-lg focus:outline-none focus:ring-2 focus:ring-longchamp-gold dark:bg-longchamp-black dark:text-longchamp-ivory"
+                  placeholder="Dein Benutzername"
+                  disabled={loading}
+                />
+              </div>
+            )}
 
             <div>
               <label htmlFor="password" className="block text-sm font-medium mb-2">

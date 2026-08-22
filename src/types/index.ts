@@ -62,8 +62,8 @@ export interface ErrorRound {
 export interface AuthContextType {
   user: User | null
   loading: boolean
-  login: (username: string, password: string) => Promise<void>
-  register: (username: string, password: string, email?: string) => Promise<void>
+  login: (email: string, password: string) => Promise<void>
+  register: (email: string, password: string, username?: string) => Promise<void>
   logout: () => Promise<void>
   isAdmin: boolean
 }

@@ -60,26 +60,26 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = async (username: string, password: string) => {
+  const login = async (email: string, password: string) => {
     try {
-      await supabaseAuth.signIn(username, password)
+      await supabaseAuth.signIn(email, password)
     } catch (error) {
       throw error
     }
   }
 
-  const register = async (username: string, password: string, email?: string) => {
+  const register = async (email: string, password: string, username?: string) => {
     try {
-      const finalEmail = email || `${username}@kidswoertli.local`
+      const finalUsername = username || email.split('@')[0]
 
-      const { data, error } = await supabaseAuth.signUp(username, password, finalEmail)
+      const { data, error } = await supabaseAuth.signUp(email, password, finalUsername)
       if (error) throw new Error(error.message || 'Registrierung fehlgeschlagen')
 
       if (data.user) {
         const { error: insertError } = await supabase.from('users').insert({
           id: data.user.id,
-          username,
-          email: finalEmail,
+          username: finalUsername,
+          email: email,
         })
 
         if (insertError) {
