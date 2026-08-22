@@ -7,7 +7,8 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const { login } = useAuth()
+  const [isRegister, setIsRegister] = useState(false)
+  const { login, register } = useAuth()
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -16,10 +17,23 @@ export function LoginPage() {
     setLoading(true)
 
     try {
-      await login(username, password)
-      navigate('/dashboard')
+      if (isRegister) {
+        await register(username, password)
+        setUsername('')
+        setPassword('')
+        setIsRegister(false)
+        setError('')
+        alert('Registrierung erfolgreich! Bitte melden Sie sich jetzt an.')
+      } else {
+        await login(username, password)
+        navigate('/dashboard')
+      }
     } catch (err) {
-      setError('Benutzername oder Passwort falsch')
+      if (isRegister) {
+        setError('Registrierung fehlgeschlagen. Benutzername bereits vorhanden?')
+      } else {
+        setError('Benutzername oder Passwort falsch')
+      }
       console.error(err)
     } finally {
       setLoading(false)
@@ -81,9 +95,27 @@ export function LoginPage() {
               disabled={loading}
               className="w-full bg-longchamp-gold hover:bg-longchamp-dark-gold text-longchamp-black font-bold py-2 px-4 rounded-lg transition duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? 'Anmelden...' : 'Anmelden'}
+              {loading ? (isRegister ? 'Registrieren...' : 'Anmelden...') : (isRegister ? 'Registrieren' : 'Anmelden')}
             </button>
           </form>
+
+          <div className="mt-6 text-center">
+            <p className="text-gray-600 dark:text-gray-400 text-sm">
+              {isRegister ? 'Bereits registriert?' : 'Noch kein Konto?'}
+              <button
+                type="button"
+                onClick={() => {
+                  setIsRegister(!isRegister)
+                  setError('')
+                  setUsername('')
+                  setPassword('')
+                }}
+                className="text-longchamp-gold hover:text-longchamp-dark-gold font-semibold ml-1"
+              >
+                {isRegister ? 'Hier anmelden' : 'Hier registrieren'}
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>

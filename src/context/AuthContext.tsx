@@ -68,6 +68,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const register = async (username: string, password: string, email?: string) => {
+    try {
+      const { data, error } = await supabaseAuth.signUp(username, password, email)
+      if (error) throw error
+
+      if (data.user) {
+        await supabase.from('users').insert({
+          id: data.user.id,
+          username,
+          email: email || `${username}@kidswoertli.local`,
+        })
+      }
+    } catch (error) {
+      throw error
+    }
+  }
+
   const logout = async () => {
     await supabaseAuth.signOut()
     setUser(null)
@@ -79,6 +96,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user,
         loading,
         login,
+        register,
         logout,
         isAdmin: user?.is_admin ?? false,
       }}
