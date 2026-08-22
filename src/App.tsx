@@ -8,7 +8,8 @@ import { MediumSelector } from '@/components/Learning/MediumSelector'
 import { QuizPage } from '@/components/Learning/QuizPage'
 import { ResultsPage } from '@/components/Learning/ResultsPage'
 import { CollectionsPage } from '@/components/Collections/CollectionsPage'
-import { AdminPanel } from '@/components/Admin/AdminPanel'
+import { AdminLoginPage } from '@/components/Admin/AdminLoginPage'
+import { AdminDashboard } from '@/components/Admin/AdminDashboard'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -93,14 +94,9 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute>
-                <AdminPanel />
-              </ProtectedRoute>
-            }
-          />
+          <Route path="/admin/login" element={<AdminLoginPage />} />
+          <Route path="/admin/dashboard" element={<AdminDashboard />} />
+          <Route path="/admin" element={<Navigate to="/admin/login" replace />} />
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
         </Routes>
       </AuthProvider>
