@@ -30,8 +30,8 @@ export const ocrService = {
     const worker = await Tesseract.createWorker()
 
     try {
-      await worker.loadLanguage(languages)
-      await worker.initialize(languages)
+      await (worker as any).loadLanguage(languages)
+      await (worker as any).initialize(languages)
 
       const result = await worker.recognize(imageSource)
       const text = result.data.text.trim()

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Card, CardResult, Language } from '@/types'
 import { ttsService, sttService } from '@/services/tts'
 import { dbService } from '@/services/database'

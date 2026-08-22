@@ -11,7 +11,6 @@ export function ResultsPage() {
   const { user } = useAuth()
   const navigate = useNavigate()
 
-  const [loading, setLoading] = useState(true)
   const [errorRounds, setErrorRounds] = useState<ErrorRound[]>([])
   const [joke, setJoke] = useState('')
 
@@ -32,13 +31,10 @@ export function ResultsPage() {
 
   const loadResults = async () => {
     try {
-      setLoading(true)
       const rounds = await dbService.getErrorRounds(sessionId)
       setErrorRounds(rounds)
     } catch (error) {
       console.error('Error loading results:', error)
-    } finally {
-      setLoading(false)
     }
   }
 
@@ -51,8 +47,7 @@ export function ResultsPage() {
     }
   }
 
-  const handleRetryErrors = (roundId: string) => {
-    // TODO: Implement error retry
+  const handleRetryErrors = (_roundId: string) => {
     alert('Fehler-Wiederholung wird noch implementiert')
   }
 
