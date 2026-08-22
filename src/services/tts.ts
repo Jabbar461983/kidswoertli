@@ -17,7 +17,7 @@ export const ttsService = {
       utterance.volume = 1
 
       utterance.onend = () => resolve()
-      utterance.onerror = (event: SpeechSynthesisErrorEvent) => reject(new Error(event.error))
+      utterance.onerror = (event: any) => reject(new Error(event.error))
 
       speechSynthesis.speak(utterance)
     })
@@ -57,15 +57,15 @@ export const sttService = {
       recognition.continuous = false
       recognition.interimResults = false
 
-      recognition.onresult = (event: SpeechRecognitionEvent) => {
+      recognition.onresult = (event: any) => {
         const transcript = Array.from(event.results)
-          .map((result: SpeechRecognitionResult) => result[0].transcript)
+          .map((result: any) => result[0].transcript)
           .join('')
 
         resolve(transcript)
       }
 
-      recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      recognition.onerror = (event: any) => {
         reject(new Error(`Speech recognition error: ${event.error}`))
       }
 
