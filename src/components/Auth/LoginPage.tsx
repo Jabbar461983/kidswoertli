@@ -29,10 +29,11 @@ export function LoginPage() {
         navigate('/dashboard')
       }
     } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Ein Fehler ist aufgetreten'
       if (isRegister) {
-        setError('Registrierung fehlgeschlagen. Benutzername bereits vorhanden?')
+        setError(`Registrierung fehlgeschlagen: ${errorMessage}`)
       } else {
-        setError('Benutzername oder Passwort falsch')
+        setError(`Anmeldung fehlgeschlagen: ${errorMessage}`)
       }
       console.error(err)
     } finally {
