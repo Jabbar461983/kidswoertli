@@ -163,7 +163,45 @@ async function preprocessImage(blob: Blob): Promise<string> {
   })
 }
 
+// Get OCR backend URL from environment or fallback
+const OCR_BACKEND_URL = import.meta.env.VITE_OCR_BACKEND_URL ||
+  (typeof window !== 'undefined' && window.location.hostname === 'localhost'
+    ? 'http://localhost:5000'
+    : 'https://kidswoertli-ocr.onrender.com')
+
 export const ocrService = {
+  async extractTextViaBackend(imageBlob: Blob): Promise<OCRResult> {
+    try {
+      const formData = new FormData()
+      formData.append('image', imageBlob)
+
+      const response = await fetch(`${OCR_BACKEND_URL}/ocr`, {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!response.ok) {
+        throw new Error(`Backend OCR failed: ${response.statusText}`)
+      }
+
+      const result = await response.json()
+
+      if (!result.success) {
+        throw new Error(result.error || 'OCR failed')
+      }
+
+      return {
+        text: result.text,
+        confidence: result.confidence,
+      }
+    } catch (error) {
+      console.error('Backend OCR error:', error)
+      // Fallback to local Tesseract
+      console.log('Falling back to local Tesseract OCR...')
+      return await ocrService.extractTextMultiLang(imageBlob)
+    }
+  },
+
   detectPairs(text: string): DetectedPair[] {
     const lines = text
       .split('\n')

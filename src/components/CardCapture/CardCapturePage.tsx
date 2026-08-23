@@ -37,7 +37,8 @@ export function CardCapturePage() {
     setError(undefined)
 
     try {
-      const result = await ocrService.extractTextMultiLang(blob)
+      // Versuche Backend PaddleOCR zuerst, fallback zu lokal
+      const result = await ocrService.extractTextViaBackend(blob)
       setExtractedText(result.text)
       setConfidence(result.confidence)
       setStep('ocr')
