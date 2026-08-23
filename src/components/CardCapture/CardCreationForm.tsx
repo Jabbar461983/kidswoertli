@@ -14,6 +14,7 @@ export interface CardData {
 interface CardCreationFormProps {
   extractedText: string
   userId: string
+  isProcessing?: boolean
   onCardCreate: (card: CardData) => void
   onCancel: () => void
 }
@@ -21,6 +22,7 @@ interface CardCreationFormProps {
 export function CardCreationForm({
   extractedText,
   userId,
+  isProcessing = false,
   onCardCreate,
   onCancel,
 }: CardCreationFormProps) {
@@ -243,15 +245,22 @@ export function CardCreationForm({
         <div className="flex gap-4">
           <button
             type="submit"
-            disabled={loading}
-            className="flex-1 bg-longchamp-gold hover:bg-longchamp-dark-gold disabled:opacity-50 text-longchamp-black font-bold py-3 px-4 rounded-lg"
+            disabled={loading || isProcessing}
+            className="flex-1 bg-longchamp-gold hover:bg-longchamp-dark-gold disabled:opacity-50 text-longchamp-black font-bold py-3 px-4 rounded-lg flex items-center justify-center gap-2"
           >
-            ✓ Karteikarte erstellen
+            {isProcessing ? (
+              <>
+                <div className="animate-spin">⚙️</div>
+                Wird erstellt...
+              </>
+            ) : (
+              '✓ Karteikarte erstellen'
+            )}
           </button>
           <button
             type="button"
             onClick={onCancel}
-            disabled={loading}
+            disabled={loading || isProcessing}
             className="flex-1 bg-gray-500 hover:bg-gray-600 disabled:opacity-50 text-white font-bold py-3 px-4 rounded-lg"
           >
             ✕ Abbrechen

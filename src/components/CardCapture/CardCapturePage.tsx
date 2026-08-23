@@ -34,7 +34,7 @@ export function CardCapturePage() {
     setError(undefined)
 
     try {
-      const result = await ocrService.extractText(blob)
+      const result = await ocrService.extractTextMultiLang(blob)
       setExtractedText(result.text)
       setConfidence(result.confidence)
       setStep('ocr')
@@ -180,6 +180,7 @@ export function CardCapturePage() {
           <CardCreationForm
             extractedText={extractedText}
             userId={user.id}
+            isProcessing={isProcessing}
             onCardCreate={handleCardCreate}
             onCancel={handleReset}
           />
