@@ -97,6 +97,27 @@ export const dbService = {
     return data
   },
 
+  async createCardBatch(
+    cards: Array<{
+      medium_id: string
+      page: number
+      chapter: string
+      german: string
+      foreign_text: string
+      language: Language
+    }>
+  ): Promise<Card[]> {
+    if (cards.length === 0) return []
+
+    const { data, error } = await supabase
+      .from('cards')
+      .insert(cards)
+      .select()
+
+    if (error) throw error
+    return data || []
+  },
+
   async createCards(cards: Omit<Card, 'id' | 'created_at' | 'updated_at'>[]): Promise<Card[]> {
     const { data, error } = await supabase
       .from('cards')

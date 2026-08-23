@@ -3,12 +3,14 @@ import { useNavigate } from 'react-router-dom'
 import { useAuth } from '@/context/AuthContext'
 import { ImageCapture } from './ImageCapture'
 import { OCRDisplay } from './OCRDisplay'
-import { CardCreationForm, CardData } from './CardCreationForm'
-import { ocrService } from '@/services/ocr'
+import { PairReview } from './PairReview'
+import { BatchCardForm } from './BatchCardForm'
+import { CardData } from './CardCreationForm'
+import { ocrService, DetectedPair } from '@/services/ocr'
 import { dbService } from '@/services/database'
 import { storageService } from '@/services/storage'
 
-type Step = 'capture' | 'ocr' | 'form' | 'success'
+type Step = 'capture' | 'ocr' | 'pair-review' | 'batch-form' | 'success'
 
 export function CardCapturePage() {
   const { user } = useAuth()
@@ -18,6 +20,7 @@ export function CardCapturePage() {
   const [imageUrl, setImageUrl] = useState('')
   const [extractedText, setExtractedText] = useState('')
   const [confidence, setConfidence] = useState(0)
+  const [detectedPairs, setDetectedPairs] = useState<DetectedPair[]>([])
   const [isProcessing, setIsProcessing] = useState(false)
   const [error, setError] = useState<string>()
   const [successCards, setSuccessCards] = useState<number>(0)
@@ -48,10 +51,18 @@ export function CardCapturePage() {
 
   const handleTextChange = (text: string) => {
     setExtractedText(text)
-    setStep('form')
+    // Erkenne Paare aus dem bearbeiteten Text
+    const pairs = ocrService.detectPairs(text)
+    setDetectedPairs(pairs)
+    setStep('pair-review')
   }
 
-  const handleCardCreate = async (cardData: CardData) => {
+  const handlePairsConfirmed = (selectedPairs: DetectedPair[]) => {
+    setDetectedPairs(selectedPairs)
+    setStep('batch-form')
+  }
+
+  const handleBatchCreate = async (cardDataList: CardData[]) => {
     if (!imageBlob) {
       setError('Fehler: Bild nicht gefunden')
       return
@@ -66,23 +77,25 @@ export function CardCapturePage() {
       const filename = `card-${timestamp}.jpg`
       await storageService.uploadImage(user.id, imageBlob, filename)
 
-      // Create card in database
-      await dbService.createCard(
-        cardData.medium_id,
-        cardData.page,
-        cardData.chapter,
-        cardData.german,
-        cardData.foreign_text,
-        cardData.language
+      // Create all cards in batch
+      await dbService.createCardBatch(
+        cardDataList.map(card => ({
+          medium_id: card.medium_id,
+          page: card.page,
+          chapter: card.chapter,
+          german: card.german,
+          foreign_text: card.foreign_text,
+          language: card.language,
+        }))
       )
 
-      // Delete image from storage (as per requirements)
+      // Delete image from storage
       await storageService.deleteImage(user.id, filename)
 
-      setSuccessCards(successCards + 1)
+      setSuccessCards(successCards + cardDataList.length)
       setStep('success')
     } catch (err) {
-      setError('Fehler beim Speichern der Karteikarte')
+      setError('Fehler beim Speichern der Karteikarten')
       console.error(err)
     } finally {
       setIsProcessing(false)
@@ -126,13 +139,13 @@ export function CardCapturePage() {
 
         {/* Step Indicator */}
         <div className="mb-12 flex justify-between items-center">
-          {['capture', 'ocr', 'form', 'success'].map((s, idx) => (
+          {['capture', 'ocr', 'pair-review', 'batch-form', 'success'].map((s, idx) => (
             <div
               key={s}
-              className={`flex items-center ${idx < 3 ? 'flex-1' : ''}`}
+              className={`flex items-center ${idx < 4 ? 'flex-1' : ''}`}
             >
               <div
-                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold ${
+                className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${
                   step === s
                     ? 'bg-longchamp-gold text-longchamp-black'
                     : 'bg-gray-300 dark:bg-gray-700 text-gray-600 dark:text-gray-300'
@@ -140,10 +153,10 @@ export function CardCapturePage() {
               >
                 {idx + 1}
               </div>
-              {idx < 3 && (
+              {idx < 4 && (
                 <div
                   className={`flex-1 h-1 mx-2 ${
-                    step === s || ['capture', 'ocr', 'form', 'success'].indexOf(step) > idx
+                    step === s || ['capture', 'ocr', 'pair-review', 'batch-form', 'success'].indexOf(step) > idx
                       ? 'bg-longchamp-gold'
                       : 'bg-gray-300 dark:bg-gray-700'
                   }`}
@@ -176,14 +189,27 @@ export function CardCapturePage() {
           </div>
         )}
 
-        {step === 'form' && (
-          <CardCreationForm
-            extractedText={extractedText}
-            userId={user.id}
-            isProcessing={isProcessing}
-            onCardCreate={handleCardCreate}
-            onCancel={handleReset}
-          />
+        {step === 'pair-review' && (
+          <div className="bg-white dark:bg-longchamp-black border-2 border-longchamp-gold rounded-lg p-8">
+            <PairReview
+              pairs={detectedPairs}
+              confidence={confidence}
+              onConfirm={handlePairsConfirmed}
+              onRetry={handleReset}
+            />
+          </div>
+        )}
+
+        {step === 'batch-form' && (
+          <div className="bg-white dark:bg-longchamp-black border-2 border-longchamp-gold rounded-lg p-8">
+            <BatchCardForm
+              pairs={detectedPairs}
+              userId={user.id}
+              isProcessing={isProcessing}
+              onBatchCreate={handleBatchCreate}
+              onCancel={handleReset}
+            />
+          </div>
         )}
 
         {step === 'success' && (

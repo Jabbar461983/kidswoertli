@@ -5,6 +5,12 @@ export interface OCRResult {
   confidence: number
 }
 
+export interface DetectedPair {
+  id: string
+  german: string
+  foreign_text: string
+}
+
 async function preprocessImage(blob: Blob): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader()
@@ -48,6 +54,27 @@ async function preprocessImage(blob: Blob): Promise<string> {
 }
 
 export const ocrService = {
+  detectPairs(text: string): DetectedPair[] {
+    const lines = text
+      .split('\n')
+      .map(l => l.trim())
+      .filter(l => l.length > 0)
+
+    const pairs: DetectedPair[] = []
+
+    // Paar-Erkennung: Alternierend - Zeile 1 = Deutsch, Zeile 2 = Fremdsprache
+    for (let i = 0; i < lines.length - 1; i += 2) {
+      pairs.push({
+        id: `pair-${i}-${Date.now()}`,
+        german: lines[i],
+        foreign_text: lines[i + 1],
+      })
+    }
+
+    // Wenn ungerade Anzahl: Letzte Zeile wird ignoriert
+    return pairs
+  },
+
   async extractTextMultiLang(
     imageSource: string | Blob,
     languages: string[] = ['ger', 'fra', 'eng']
