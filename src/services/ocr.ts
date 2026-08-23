@@ -11,18 +11,78 @@ export interface DetectedPair {
   foreign_text: string
 }
 
+// Deskew image - detect and correct rotation
+async function deskewImage(canvas: HTMLCanvasElement): Promise<HTMLCanvasElement> {
+  const ctx = canvas.getContext('2d')!
+  const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
+  const data = imageData.data
+
+  // Simple edge detection to find dominant angle
+  let maxEdges = 0
+  let bestAngle = 0
+
+  // Test angles from -10 to 10 degrees
+  for (let angle = -10; angle <= 10; angle += 0.5) {
+    let edgeCount = 0
+
+    for (let y = 1; y < canvas.height - 1; y++) {
+      for (let x = 1; x < canvas.width - 1; x++) {
+        const idx = (y * canvas.width + x) * 4
+        const gray = data[idx] * 0.299 + data[idx + 1] * 0.587 + data[idx + 2] * 0.114
+
+        const idx2 = (y * canvas.width + (x + 1)) * 4
+        const gray2 = data[idx2] * 0.299 + data[idx2 + 1] * 0.587 + data[idx2 + 2] * 0.114
+
+        if (Math.abs(gray - gray2) > 30) {
+          edgeCount++
+        }
+      }
+    }
+
+    if (edgeCount > maxEdges) {
+      maxEdges = edgeCount
+      bestAngle = angle
+    }
+  }
+
+  // Apply rotation if angle is significant
+  if (Math.abs(bestAngle) > 0.5) {
+    const rad = (bestAngle * Math.PI) / 180
+    const newCanvas = document.createElement('canvas')
+    const cos = Math.cos(rad)
+    const sin = Math.sin(rad)
+
+    newCanvas.width = Math.abs(canvas.width * cos) + Math.abs(canvas.height * sin)
+    newCanvas.height = Math.abs(canvas.width * sin) + Math.abs(canvas.height * cos)
+
+    const newCtx = newCanvas.getContext('2d')!
+    newCtx.translate(newCanvas.width / 2, newCanvas.height / 2)
+    newCtx.rotate(rad)
+    newCtx.drawImage(canvas, -canvas.width / 2, -canvas.height / 2)
+
+    return newCanvas
+  }
+
+  return canvas
+}
+
 async function preprocessImage(blob: Blob): Promise<string> {
   return new Promise((resolve) => {
     const reader = new FileReader()
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
       const img = new Image()
-      img.onload = () => {
-        const canvas = document.createElement('canvas')
+      img.onload = async () => {
+        let canvas = document.createElement('canvas')
         canvas.width = img.width
         canvas.height = img.height
-        const ctx = canvas.getContext('2d')!
-
+        let ctx = canvas.getContext('2d')!
         ctx.drawImage(img, 0, 0)
+
+        // Step 0: Deskew (begradigen)
+        console.log('Deskewing image...')
+        canvas = await deskewImage(canvas)
+        ctx = canvas.getContext('2d')!
+
         const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
         const data = imageData.data
 
@@ -35,7 +95,7 @@ async function preprocessImage(blob: Blob): Promise<string> {
           gray[i / 4] = r * 0.299 + g * 0.587 + b * 0.114
         }
 
-        // Step 2: Histogram Equalization für bessere Kontraste
+        // Step 2: Histogram Equalization
         const histogram = new Uint32Array(256)
         for (let i = 0; i < gray.length; i++) {
           histogram[gray[i]]++
@@ -50,53 +110,48 @@ async function preprocessImage(blob: Blob): Promise<string> {
         const cdfMin = cdf[0]
         const scale = 255 / (gray.length - cdfMin)
         for (let i = 0; i < gray.length; i++) {
-          gray[i] = Math.round(((cdf[gray[i]] - cdfMin) * scale))
+          gray[i] = Math.round((cdf[gray[i]] - cdfMin) * scale)
         }
 
-        // Step 3: Adaptive Thresholding für Binarization
-        const blockSize = 25
-        const offset = 10
-        for (let y = 0; y < canvas.height; y++) {
-          for (let x = 0; x < canvas.width; x++) {
-            const idx = y * canvas.width + x
-            let sum = 0
-            let count = 0
+        // Step 3: Otsu's Thresholding für optimale Binarization
+        let sum = 0
+        for (let i = 0; i < 256; i++) {
+          sum += i * histogram[i]
+        }
 
-            for (let dy = -Math.floor(blockSize / 2); dy <= Math.floor(blockSize / 2); dy++) {
-              for (let dx = -Math.floor(blockSize / 2); dx <= Math.floor(blockSize / 2); dx++) {
-                const ny = Math.max(0, Math.min(canvas.height - 1, y + dy))
-                const nx = Math.max(0, Math.min(canvas.width - 1, x + dx))
-                sum += gray[ny * canvas.width + nx]
-                count++
-              }
-            }
+        let sumB = 0
+        let wB = 0
+        let wF
+        let mB
+        let mF
+        let maxVar = 0
+        let threshold = 0
 
-            const mean = sum / count
-            const threshold = mean - offset
-            const binaryValue = gray[idx] > threshold ? 255 : 0
+        for (let t = 0; t < 256; t++) {
+          wB += histogram[t]
+          if (wB === 0) continue
 
-            data[idx * 4] = binaryValue
-            data[idx * 4 + 1] = binaryValue
-            data[idx * 4 + 2] = binaryValue
+          wF = gray.length - wB
+          if (wF === 0) break
+
+          sumB += t * histogram[t]
+          mB = sumB / wB
+          mF = (sum - sumB) / wF
+
+          const varBetween = wB * wF * Math.pow(mB - mF, 2)
+
+          if (varBetween > maxVar) {
+            maxVar = varBetween
+            threshold = t
           }
         }
 
-        // Step 4: Contrast Stretching
-        let minVal = 255
-        let maxVal = 0
-        for (let i = 0; i < data.length; i += 4) {
-          minVal = Math.min(minVal, data[i])
-          maxVal = Math.max(maxVal, data[i])
-        }
-
-        if (maxVal > minVal) {
-          const range = maxVal - minVal
-          for (let i = 0; i < data.length; i += 4) {
-            const stretched = Math.round(((data[i] - minVal) / range) * 255)
-            data[i] = stretched
-            data[i + 1] = stretched
-            data[i + 2] = stretched
-          }
+        // Apply threshold
+        for (let i = 0; i < gray.length; i++) {
+          const binaryValue = gray[i] > threshold ? 255 : 0
+          data[i * 4] = binaryValue
+          data[i * 4 + 1] = binaryValue
+          data[i * 4 + 2] = binaryValue
         }
 
         ctx.putImageData(imageData, 0, 0)
