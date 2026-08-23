@@ -1,6 +1,6 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-from paddleocr import PaddleOCR
+import easyocr
 from PIL import Image
 import io
 import base64
@@ -9,9 +9,9 @@ import logging
 app = Flask(__name__)
 CORS(app)
 
-# Initalisiere PaddleOCR mit Deutsch, Französisch, Englisch
-print("Initializing PaddleOCR with German, French, English...")
-ocr = PaddleOCR(use_angle_cls=True, lang=['de', 'fr', 'en'])
+# Initalisiere EasyOCR mit Deutsch, Französisch, Englisch
+print("Initializing EasyOCR with German, French, English...")
+reader = easyocr.Reader(['de', 'fr', 'en'], gpu=False)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'model': 'PaddleOCR'})
+    return jsonify({'status': 'healthy', 'model': 'EasyOCR'})
 
 @app.route('/ocr', methods=['POST'])
 def perform_ocr():
@@ -32,24 +32,25 @@ def perform_ocr():
         image_file = request.files['image']
 
         # Read image
-        image = Image.open(io.BytesIO(image_file.read())).convert('RGB')
+        image_bytes = image_file.read()
+        image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
 
         # Perform OCR
-        logger.info("Starting OCR recognition...")
-        result = ocr.ocr(image, cls=True)
+        logger.info("Starting OCR recognition with EasyOCR...")
+        results = reader.readtext(image, detail=1)
 
         # Extract text and confidence
         extracted_text = ""
         total_confidence = 0
         item_count = 0
 
-        if result:
-            for line in result:
-                for item in line:
-                    text, confidence = item[1], item[2]
-                    extracted_text += text + "\n"
-                    total_confidence += confidence
-                    item_count += 1
+        if results:
+            for detection in results:
+                text = detection[1]
+                confidence = detection[2]
+                extracted_text += text + "\n"
+                total_confidence += confidence
+                item_count += 1
 
         # Calculate average confidence
         avg_confidence = (total_confidence / item_count if item_count > 0 else 0)
@@ -87,21 +88,21 @@ def perform_ocr_base64():
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
 
         # Perform OCR
-        logger.info("Starting OCR recognition (base64)...")
-        result = ocr.ocr(image, cls=True)
+        logger.info("Starting OCR recognition (base64) with EasyOCR...")
+        results = reader.readtext(image, detail=1)
 
         # Extract text and confidence
         extracted_text = ""
         total_confidence = 0
         item_count = 0
 
-        if result:
-            for line in result:
-                for item in line:
-                    text, confidence = item[1], item[2]
-                    extracted_text += text + "\n"
-                    total_confidence += confidence
-                    item_count += 1
+        if results:
+            for detection in results:
+                text = detection[1]
+                confidence = detection[2]
+                extracted_text += text + "\n"
+                total_confidence += confidence
+                item_count += 1
 
         # Calculate average confidence
         avg_confidence = (total_confidence / item_count if item_count > 0 else 0)
