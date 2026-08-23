@@ -85,6 +85,9 @@ ALTER TABLE public.error_rounds ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can view their own data" ON public.users
   FOR SELECT USING (auth.uid() = id);
 
+CREATE POLICY "Allow public read users" ON public.users
+  FOR SELECT USING (true);
+
 CREATE POLICY "Users can view their own media" ON public.learning_media
   FOR SELECT USING (user_id = auth.uid());
 
@@ -119,6 +122,9 @@ CREATE POLICY "Users can delete cards in their media" ON public.cards
 
 CREATE POLICY "Users can view their sessions" ON public.learning_sessions
   FOR SELECT USING (user_id = auth.uid());
+
+CREATE POLICY "Allow public read learning_sessions" ON public.learning_sessions
+  FOR SELECT USING (true);
 
 CREATE POLICY "Users can create sessions" ON public.learning_sessions
   FOR INSERT WITH CHECK (user_id = auth.uid());

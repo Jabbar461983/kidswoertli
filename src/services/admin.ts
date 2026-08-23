@@ -23,7 +23,7 @@ export const adminService = {
           .select('created_at, updated_at')
           .eq('user_id', user.id)
 
-        if (sessionsError) {
+        if (sessionsError || !sessions) {
           return { ...user, totalMinutes: 0 }
         }
 
