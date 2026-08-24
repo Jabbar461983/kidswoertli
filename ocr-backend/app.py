@@ -1,10 +1,11 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import easyocr
-from PIL import Image
+from PIL import Image, ImageEnhance, ImageFilter
 import io
 import base64
 import logging
+import numpy as np
 
 app = Flask(__name__)
 CORS(app)
@@ -12,6 +13,22 @@ CORS(app)
 # Initalisiere EasyOCR mit Deutsch, Französisch, Englisch
 print("Initializing EasyOCR with German, French, English...")
 reader = easyocr.Reader(['de', 'fr', 'en'], gpu=False)
+
+def preprocess_image_for_ocr(image):
+    """Verbessere das Bild für bessere OCR-Erkennung"""
+    # Erhöhe den Kontrast
+    enhancer = ImageEnhance.Contrast(image)
+    image = enhancer.enhance(1.5)
+
+    # Erhöhe die Schärfe
+    enhancer = ImageEnhance.Sharpness(image)
+    image = enhancer.enhance(2.0)
+
+    # Erhöhe die Helligkeit leicht
+    enhancer = ImageEnhance.Brightness(image)
+    image = enhancer.enhance(1.1)
+
+    return image
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,22 +52,35 @@ def perform_ocr():
         image_bytes = image_file.read()
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
 
-        # Perform OCR
-        logger.info("Starting OCR recognition with EasyOCR...")
-        results = reader.readtext(image, detail=1)
+        # Preprocess image for better OCR
+        logger.info("Preprocessing image...")
+        image = preprocess_image_for_ocr(image)
 
-        # Extract text and confidence
+        # Perform OCR with optimized parameters
+        logger.info("Starting OCR recognition with EasyOCR...")
+        results = reader.readtext(
+            image,
+            detail=1,
+            paragraph=True,
+            batch_size=1
+        )
+
+        # Extract text and confidence - filter by minimum confidence
         extracted_text = ""
         total_confidence = 0
         item_count = 0
+        min_confidence = 0.3  # Filter out very low confidence results
 
         if results:
             for detection in results:
                 text = detection[1]
                 confidence = detection[2]
-                extracted_text += text + "\n"
-                total_confidence += confidence
-                item_count += 1
+
+                # Only include if confidence is above threshold
+                if confidence >= min_confidence:
+                    extracted_text += text + "\n"
+                    total_confidence += confidence
+                    item_count += 1
 
         # Calculate average confidence
         avg_confidence = (total_confidence / item_count if item_count > 0 else 0)
@@ -87,22 +117,35 @@ def perform_ocr_base64():
         image_bytes = base64.b64decode(image_data)
         image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
 
-        # Perform OCR
-        logger.info("Starting OCR recognition (base64) with EasyOCR...")
-        results = reader.readtext(image, detail=1)
+        # Preprocess image for better OCR
+        logger.info("Preprocessing image (base64)...")
+        image = preprocess_image_for_ocr(image)
 
-        # Extract text and confidence
+        # Perform OCR with optimized parameters
+        logger.info("Starting OCR recognition (base64) with EasyOCR...")
+        results = reader.readtext(
+            image,
+            detail=1,
+            paragraph=True,
+            batch_size=1
+        )
+
+        # Extract text and confidence - filter by minimum confidence
         extracted_text = ""
         total_confidence = 0
         item_count = 0
+        min_confidence = 0.3  # Filter out very low confidence results
 
         if results:
             for detection in results:
                 text = detection[1]
                 confidence = detection[2]
-                extracted_text += text + "\n"
-                total_confidence += confidence
-                item_count += 1
+
+                # Only include if confidence is above threshold
+                if confidence >= min_confidence:
+                    extracted_text += text + "\n"
+                    total_confidence += confidence
+                    item_count += 1
 
         # Calculate average confidence
         avg_confidence = (total_confidence / item_count if item_count > 0 else 0)
