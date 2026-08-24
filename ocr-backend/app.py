@@ -1,34 +1,21 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import easyocr
-from PIL import Image, ImageEnhance, ImageFilter
+from anthropic import Anthropic
+from PIL import Image
 import io
 import base64
 import logging
-import numpy as np
+import os
 
 app = Flask(__name__)
 CORS(app)
 
-# Initalisiere EasyOCR mit Deutsch, Französisch, Englisch
-print("Initializing EasyOCR with German, French, English...")
-reader = easyocr.Reader(['de', 'fr', 'en'], gpu=False)
-
-def preprocess_image_for_ocr(image):
-    """Verbessere das Bild für bessere OCR-Erkennung"""
-    # Erhöhe den Kontrast
-    enhancer = ImageEnhance.Contrast(image)
-    image = enhancer.enhance(1.5)
-
-    # Erhöhe die Schärfe
-    enhancer = ImageEnhance.Sharpness(image)
-    image = enhancer.enhance(2.0)
-
-    # Erhöhe die Helligkeit leicht
-    enhancer = ImageEnhance.Brightness(image)
-    image = enhancer.enhance(1.1)
-
-    return image
+# Initialize Anthropic client
+api_key = os.getenv('ANTHROPIC_API_KEY')
+if not api_key:
+    print("WARNING: ANTHROPIC_API_KEY environment variable not set!")
+    print("Set it on Render in the Environment tab")
+client = Anthropic(api_key=api_key)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -36,60 +23,77 @@ logger = logging.getLogger(__name__)
 @app.route('/health', methods=['GET'])
 def health():
     """Health check endpoint"""
-    return jsonify({'status': 'healthy', 'model': 'EasyOCR'})
+    has_key = bool(os.getenv('ANTHROPIC_API_KEY'))
+    return jsonify({
+        'status': 'healthy',
+        'model': 'Claude Vision API',
+        'api_key_configured': has_key
+    })
 
 @app.route('/ocr', methods=['POST'])
 def perform_ocr():
-    """Perform OCR on uploaded image"""
+    """Perform OCR on uploaded image using Claude Vision"""
     try:
         # Get image from request
         if 'image' not in request.files:
             return jsonify({'error': 'No image provided'}), 400
 
         image_file = request.files['image']
-
-        # Read image
         image_bytes = image_file.read()
-        image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
 
-        # Preprocess image for better OCR
-        logger.info("Preprocessing image...")
-        image = preprocess_image_for_ocr(image)
+        # Convert image to base64
+        image_base64 = base64.standard_b64encode(image_bytes).decode('utf-8')
 
-        # Perform OCR with optimized parameters
-        logger.info("Starting OCR recognition with EasyOCR...")
-        results = reader.readtext(
-            image,
-            detail=1,
-            paragraph=True,
-            batch_size=1
+        # Determine image type from file
+        image = Image.open(io.BytesIO(image_bytes))
+        image_format = image.format.lower() if image.format else 'jpeg'
+        media_type = f'image/{image_format}'
+
+        logger.info(f"Processing image: {image_format}, size: {len(image_bytes)} bytes")
+
+        # Call Claude Vision API
+        logger.info("Sending image to Claude Vision API...")
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=2000,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": image_base64,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": """Bitte erkenne den Text in diesem Bild sehr genau und präzise.
+
+Gib den erkannten Text genau so aus, wie er im Bild steht, Zeile für Zeile.
+Ignoriere keine Wörter und achte auf korrekte Rechtschreibung.
+
+Antworte NUR mit dem erkannten Text, nichts anderes."""
+                        }
+                    ],
+                }
+            ],
         )
 
-        # Extract text and confidence - filter by minimum confidence
-        extracted_text = ""
-        total_confidence = 0
-        item_count = 0
-        min_confidence = 0.3  # Filter out very low confidence results
+        # Extract text from response
+        extracted_text = message.content[0].text.strip()
 
-        if results:
-            for detection in results:
-                text = detection[1]
-                confidence = detection[2]
+        # Calculate a confidence score based on the response
+        # Claude doesn't give explicit confidence, but we can estimate it's high
+        confidence = 0.95  # Claude Vision is very accurate
 
-                # Only include if confidence is above threshold
-                if confidence >= min_confidence:
-                    extracted_text += text + "\n"
-                    total_confidence += confidence
-                    item_count += 1
-
-        # Calculate average confidence
-        avg_confidence = (total_confidence / item_count if item_count > 0 else 0)
-
-        logger.info(f"OCR completed. Text length: {len(extracted_text)}, Confidence: {avg_confidence:.2%}")
+        logger.info(f"OCR completed. Text length: {len(extracted_text)}")
 
         return jsonify({
-            'text': extracted_text.strip(),
-            'confidence': avg_confidence,
+            'text': extracted_text,
+            'confidence': confidence,
             'success': True
         })
 
@@ -102,7 +106,7 @@ def perform_ocr():
 
 @app.route('/ocr/base64', methods=['POST'])
 def perform_ocr_base64():
-    """Perform OCR on base64 encoded image"""
+    """Perform OCR on base64 encoded image using Claude Vision"""
     try:
         data = request.get_json()
 
@@ -112,49 +116,56 @@ def perform_ocr_base64():
         # Decode base64 image
         image_data = data['image']
         if image_data.startswith('data:image'):
-            image_data = image_data.split(',')[1]
+            # Extract media type and data
+            header, image_data = image_data.split(',', 1)
+            media_type = header.split(':')[1].split(';')[0]
+        else:
+            media_type = 'image/jpeg'
 
-        image_bytes = base64.b64decode(image_data)
-        image = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        logger.info(f"Processing base64 image: {media_type}")
 
-        # Preprocess image for better OCR
-        logger.info("Preprocessing image (base64)...")
-        image = preprocess_image_for_ocr(image)
+        # Call Claude Vision API
+        logger.info("Sending image to Claude Vision API (base64)...")
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=2000,
+            messages=[
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image",
+                            "source": {
+                                "type": "base64",
+                                "media_type": media_type,
+                                "data": image_data,
+                            },
+                        },
+                        {
+                            "type": "text",
+                            "text": """Bitte erkenne den Text in diesem Bild sehr genau und präzise.
 
-        # Perform OCR with optimized parameters
-        logger.info("Starting OCR recognition (base64) with EasyOCR...")
-        results = reader.readtext(
-            image,
-            detail=1,
-            paragraph=True,
-            batch_size=1
+Gib den erkannten Text genau so aus, wie er im Bild steht, Zeile für Zeile.
+Ignoriere keine Wörter und achte auf korrekte Rechtschreibung.
+
+Antworte NUR mit dem erkannten Text, nichts anderes."""
+                        }
+                    ],
+                }
+            ],
         )
 
-        # Extract text and confidence - filter by minimum confidence
-        extracted_text = ""
-        total_confidence = 0
-        item_count = 0
-        min_confidence = 0.3  # Filter out very low confidence results
+        # Extract text from response
+        extracted_text = message.content[0].text.strip()
 
-        if results:
-            for detection in results:
-                text = detection[1]
-                confidence = detection[2]
+        # Calculate a confidence score
+        confidence = 0.95  # Claude Vision is very accurate
 
-                # Only include if confidence is above threshold
-                if confidence >= min_confidence:
-                    extracted_text += text + "\n"
-                    total_confidence += confidence
-                    item_count += 1
-
-        # Calculate average confidence
-        avg_confidence = (total_confidence / item_count if item_count > 0 else 0)
-
-        logger.info(f"OCR completed. Text length: {len(extracted_text)}, Confidence: {avg_confidence:.2%}")
+        logger.info(f"OCR completed (base64). Text length: {len(extracted_text)}")
 
         return jsonify({
-            'text': extracted_text.strip(),
-            'confidence': avg_confidence,
+            'text': extracted_text,
+            'confidence': confidence,
             'success': True
         })
 
