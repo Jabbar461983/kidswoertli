@@ -22,7 +22,6 @@ export function AdminDashboard() {
   // API Key management
   const [apiKeyInput, setApiKeyInput] = useState('')
   const [lastUpdated, setLastUpdated] = useState<string | null>(null)
-  const [updatedBy, setUpdatedBy] = useState<string | null>(null)
   const [savingApiKey, setSavingApiKey] = useState(false)
 
   // Check admin session
@@ -55,7 +54,6 @@ export function AdminDashboard() {
       const settings = await adminService.getApiSettings()
       if (settings) {
         setLastUpdated(settings.updated_at ? new Date(settings.updated_at).toLocaleDateString('de-DE') : null)
-        setUpdatedBy(settings.updated_by || null)
       }
     } catch (err) {
       console.error('Fehler beim Laden der API-Einstellungen:', err)

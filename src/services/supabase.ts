@@ -41,4 +41,8 @@ export const supabaseAuth = {
     const email = `${username}@kidswoertli.local`
     return supabase.auth.resetPasswordForEmail(email)
   },
+
+  async getUser() {
+    return supabase.auth.getUser()
+  },
 }
