@@ -10,12 +10,18 @@ import os
 app = Flask(__name__)
 CORS(app)
 
-# Initialize Anthropic client
+# Initialize Anthropic client lazily (not at startup)
 api_key = os.getenv('ANTHROPIC_API_KEY')
 if not api_key:
     print("WARNING: ANTHROPIC_API_KEY environment variable not set!")
     print("Set it on Render in the Environment tab")
-client = Anthropic(api_key=api_key)
+client = None
+
+def get_client():
+    global client
+    if client is None:
+        client = Anthropic(api_key=api_key)
+    return client
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -53,7 +59,7 @@ def perform_ocr():
 
         # Call Claude Vision API
         logger.info("Sending image to Claude Vision API...")
-        message = client.messages.create(
+        message = get_client().messages.create(
             model="claude-3-5-sonnet-20241022",
             max_tokens=2000,
             messages=[
