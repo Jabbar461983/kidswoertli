@@ -163,25 +163,27 @@ async function preprocessImage(blob: Blob): Promise<string> {
   })
 }
 
-// Get OCR backend URL from environment or fallback
-const OCR_BACKEND_URL = import.meta.env.VITE_OCR_BACKEND_URL ||
-  (typeof window !== 'undefined' && window.location.hostname === 'localhost'
-    ? 'http://localhost:5000'
-    : 'https://kidswoertli-ocr.onrender.com')
+// Get Supabase URL from environment
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
 
 export const ocrService = {
   async extractTextViaBackend(imageBlob: Blob): Promise<OCRResult> {
     try {
+      if (!SUPABASE_URL) {
+        throw new Error('Supabase URL not configured')
+      }
+
       const formData = new FormData()
       formData.append('image', imageBlob)
 
-      const response = await fetch(`${OCR_BACKEND_URL}/ocr`, {
+      const response = await fetch(`${SUPABASE_URL}/functions/v1/ocr`, {
         method: 'POST',
         body: formData,
       })
 
       if (!response.ok) {
-        throw new Error(`Backend OCR failed: ${response.statusText}`)
+        const errorData = await response.json()
+        throw new Error(`OCR failed: ${errorData.error || response.statusText}`)
       }
 
       const result = await response.json()
@@ -195,7 +197,7 @@ export const ocrService = {
         confidence: result.confidence,
       }
     } catch (error) {
-      console.error('Backend OCR error:', error)
+      console.error('Supabase OCR error:', error)
       // Fallback to local Tesseract
       console.log('Falling back to local Tesseract OCR...')
       return await ocrService.extractTextMultiLang(imageBlob)

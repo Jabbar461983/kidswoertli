@@ -105,4 +105,33 @@ export const adminService = {
     if (error) throw error
     return data
   },
+
+  // Get API settings
+  async getApiSettings() {
+    const { data, error } = await supabase
+      .from('app_settings')
+      .select('*')
+      .eq('id', 1)
+      .single()
+
+    if (error) throw error
+    return data
+  },
+
+  // Update API key
+  async updateApiKey(apiKey: string) {
+    const { data: { user }, error: userError } = await supabaseAuth.getUser()
+    if (userError || !user) throw new Error('Not authenticated')
+
+    const { error } = await supabase
+      .from('app_settings')
+      .update({
+        anthropic_api_key: apiKey,
+        updated_at: new Date().toISOString(),
+        updated_by: user.id,
+      })
+      .eq('id', 1)
+
+    if (error) throw error
+  },
 }

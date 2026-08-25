@@ -19,6 +19,12 @@ export function AdminDashboard() {
   const [formData, setFormData] = useState({ email: '', password: '', username: '' })
   const [editData, setEditData] = useState({ username: '', email: '' })
 
+  // API Key management
+  const [apiKeyInput, setApiKeyInput] = useState('')
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null)
+  const [updatedBy, setUpdatedBy] = useState<string | null>(null)
+  const [savingApiKey, setSavingApiKey] = useState(false)
+
   // Check admin session
   useEffect(() => {
     const adminSession = localStorage.getItem('adminSession')
@@ -28,6 +34,7 @@ export function AdminDashboard() {
     }
 
     loadUsers()
+    loadApiSettings()
   }, [])
 
   const loadUsers = async () => {
@@ -40,6 +47,40 @@ export function AdminDashboard() {
       console.error(err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadApiSettings = async () => {
+    try {
+      const settings = await adminService.getApiSettings()
+      if (settings) {
+        setLastUpdated(settings.updated_at ? new Date(settings.updated_at).toLocaleDateString('de-DE') : null)
+        setUpdatedBy(settings.updated_by || null)
+      }
+    } catch (err) {
+      console.error('Fehler beim Laden der API-Einstellungen:', err)
+    }
+  }
+
+  const handleSaveApiKey = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!apiKeyInput.trim()) {
+      alert('Bitte geben Sie einen API-Schlüssel ein')
+      return
+    }
+
+    try {
+      setSavingApiKey(true)
+      await adminService.updateApiKey(apiKeyInput)
+      setApiKeyInput('')
+      await loadApiSettings()
+      alert('API-Schlüssel erfolgreich gespeichert!')
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : JSON.stringify(err)
+      console.error('API Key save error:', err)
+      alert('Fehler beim Speichern des API-Schlüssels:\n' + errorMsg)
+    } finally {
+      setSavingApiKey(false)
     }
   }
 
@@ -120,6 +161,40 @@ export function AdminDashboard() {
             {error}
           </div>
         )}
+
+        {/* API Key Management Section */}
+        <div className="bg-white dark:bg-longchamp-black border-2 border-longchamp-gold rounded-lg p-6 mb-8">
+          <h2 className="text-xl font-bold mb-4 text-longchamp-black dark:text-longchamp-ivory">
+            🔑 API-Schlüssel Verwaltung
+          </h2>
+
+          <form onSubmit={handleSaveApiKey} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Anthropic API-Schlüssel</label>
+              <input
+                type="password"
+                value={apiKeyInput}
+                onChange={(e) => setApiKeyInput(e.target.value)}
+                placeholder="sk-ant-..."
+                className="w-full px-4 py-2 border-2 border-longchamp-gold rounded-lg focus:outline-none dark:bg-longchamp-black dark:text-longchamp-ivory"
+              />
+            </div>
+
+            {lastUpdated && (
+              <div className="text-sm text-gray-600 dark:text-gray-400">
+                Zuletzt aktualisiert: {lastUpdated}
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={savingApiKey}
+              className="bg-longchamp-gold hover:bg-longchamp-dark-gold disabled:bg-gray-400 text-longchamp-black font-bold py-2 px-4 rounded-lg"
+            >
+              {savingApiKey ? 'Speichert...' : 'API-Schlüssel speichern'}
+            </button>
+          </form>
+        </div>
 
         {/* Create User Section */}
         <div className="bg-white dark:bg-longchamp-black border-2 border-longchamp-gold rounded-lg p-6 mb-8">
