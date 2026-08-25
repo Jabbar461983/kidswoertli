@@ -8,7 +8,7 @@ import logging
 import os
 
 app = Flask(__name__)
-CORS(app)
+CORS(app, resources={r"/ocr*": {"origins": "*", "methods": ["POST", "GET"], "allow_headers": ["Content-Type"]}})
 
 # Initialize Anthropic client lazily (not at startup)
 api_key = os.getenv('ANTHROPIC_API_KEY')
@@ -129,7 +129,7 @@ def perform_ocr_base64():
 
         # Call Claude Vision API
         logger.info("Sending image to Claude Vision API (base64)...")
-        message = client.messages.create(
+        message = get_client().messages.create(
             model="claude-3-5-sonnet-20241022",
             max_tokens=2000,
             messages=[
