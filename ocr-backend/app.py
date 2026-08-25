@@ -84,9 +84,6 @@ Antworte NUR mit dem erkannten Text, nichts anderes."""
 
         # Extract text from response
         extracted_text = message.content[0].text.strip()
-
-        # Calculate a confidence score based on the response
-        # Claude doesn't give explicit confidence, but we can estimate it's high
         confidence = 0.95  # Claude Vision is very accurate
 
         logger.info(f"OCR completed. Text length: {len(extracted_text)}")
@@ -157,8 +154,6 @@ Antworte NUR mit dem erkannten Text, nichts anderes."""
 
         # Extract text from response
         extracted_text = message.content[0].text.strip()
-
-        # Calculate a confidence score
         confidence = 0.95  # Claude Vision is very accurate
 
         logger.info(f"OCR completed (base64). Text length: {len(extracted_text)}")
