@@ -1,4 +1,5 @@
 import Tesseract from 'tesseract.js'
+import { supabase } from './supabase'
 
 export interface OCRResult {
   text: string
@@ -163,42 +164,95 @@ async function preprocessImage(blob: Blob): Promise<string> {
   })
 }
 
-// Get Supabase URL from environment
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
+// Convert Blob to base64 safely
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const result = reader.result as string
+      // Result is in format "data:image/...;base64,..."
+      const base64 = result.split(',')[1]
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(blob)
+  })
+}
 
 export const ocrService = {
   async extractTextViaBackend(imageBlob: Blob): Promise<OCRResult> {
     try {
-      if (!SUPABASE_URL) {
-        throw new Error('Supabase URL not configured')
+      // Fetch API key from Supabase app_settings table
+      const { data, error } = await supabase
+        .from('app_settings')
+        .select('anthropic_api_key')
+        .eq('id', 1)
+        .single()
+
+      if (error || !data || !data.anthropic_api_key) {
+        console.warn('API key not found in database, falling back to local OCR')
+        return await ocrService.extractTextMultiLang(imageBlob)
       }
 
-      const formData = new FormData()
-      formData.append('image', imageBlob)
+      const apiKey = data.anthropic_api_key
 
-      const response = await fetch(`${SUPABASE_URL}/functions/v1/ocr`, {
+      // Convert Blob to base64
+      const imageBase64 = await blobToBase64(imageBlob)
+      const mediaType = imageBlob.type || 'image/jpeg'
+
+      // Call Claude Vision API directly
+      const response = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
-        body: formData,
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({
+          model: 'claude-3-5-sonnet-20241022',
+          max_tokens: 2000,
+          messages: [
+            {
+              role: 'user',
+              content: [
+                {
+                  type: 'image',
+                  source: {
+                    type: 'base64',
+                    media_type: mediaType,
+                    data: imageBase64,
+                  },
+                },
+                {
+                  type: 'text',
+                  text: `Bitte erkenne den Text in diesem Bild sehr genau und präzise.
+
+Gib den erkannten Text genau so aus, wie er im Bild steht, Zeile für Zeile.
+Ignoriere keine Wörter und achte auf korrekte Rechtschreibung.
+
+Antworte NUR mit dem erkannten Text, nichts anderes.`,
+                },
+              ],
+            },
+          ],
+        }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        throw new Error(`OCR failed: ${errorData.error || response.statusText}`)
+        console.error('Claude API error:', errorData)
+        throw new Error(`OCR failed: ${errorData.error?.message || response.statusText}`)
       }
 
       const result = await response.json()
-
-      if (!result.success) {
-        throw new Error(result.error || 'OCR failed')
-      }
+      const extractedText = result.content[0].text.trim()
 
       return {
-        text: result.text,
-        confidence: result.confidence,
+        text: extractedText,
+        confidence: 0.95,
       }
     } catch (error) {
-      console.error('Supabase OCR error:', error)
-      // Fallback to local Tesseract
+      console.error('Direct Claude Vision OCR error:', error)
       console.log('Falling back to local Tesseract OCR...')
       return await ocrService.extractTextMultiLang(imageBlob)
     }
