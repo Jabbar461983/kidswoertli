@@ -1,5 +1,4 @@
 import Tesseract from 'tesseract.js'
-import { supabase } from './supabase'
 
 export interface OCRResult {
   text: string
@@ -182,77 +181,40 @@ async function blobToBase64(blob: Blob): Promise<string> {
 export const ocrService = {
   async extractTextViaBackend(imageBlob: Blob): Promise<OCRResult> {
     try {
-      // Fetch API key from Supabase app_settings table
-      const { data, error } = await supabase
-        .from('app_settings')
-        .select('anthropic_api_key')
-        .eq('id', 1)
-        .single()
-
-      if (error || !data || !data.anthropic_api_key) {
-        console.warn('API key not found in database, falling back to local OCR')
-        return await ocrService.extractTextMultiLang(imageBlob)
-      }
-
-      const apiKey = data.anthropic_api_key
-
       // Convert Blob to base64
       const imageBase64 = await blobToBase64(imageBlob)
       const mediaType = imageBlob.type || 'image/jpeg'
 
-      // Call Claude Vision API directly
-      const response = await fetch('https://api.anthropic.com/v1/messages', {
+      // Call Netlify Function
+      const response = await fetch('/.netlify/functions/ocr', {
         method: 'POST',
         headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'content-type': 'application/json',
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'claude-3-5-sonnet-20241022',
-          max_tokens: 2000,
-          messages: [
-            {
-              role: 'user',
-              content: [
-                {
-                  type: 'image',
-                  source: {
-                    type: 'base64',
-                    media_type: mediaType,
-                    data: imageBase64,
-                  },
-                },
-                {
-                  type: 'text',
-                  text: `Bitte erkenne den Text in diesem Bild sehr genau und präzise.
-
-Gib den erkannten Text genau so aus, wie er im Bild steht, Zeile für Zeile.
-Ignoriere keine Wörter und achte auf korrekte Rechtschreibung.
-
-Antworte NUR mit dem erkannten Text, nichts anderes.`,
-                },
-              ],
-            },
-          ],
+          imageBase64,
+          mediaType,
         }),
       })
 
       if (!response.ok) {
         const errorData = await response.json()
-        console.error('Claude API error:', errorData)
-        throw new Error(`OCR failed: ${errorData.error?.message || response.statusText}`)
+        console.error('OCR function error:', errorData)
+        throw new Error(`OCR failed: ${errorData.error || response.statusText}`)
       }
 
       const result = await response.json()
-      const extractedText = result.content[0].text.trim()
+
+      if (!result.success) {
+        throw new Error(result.error || 'OCR failed')
+      }
 
       return {
-        text: extractedText,
-        confidence: 0.95,
+        text: result.text,
+        confidence: result.confidence,
       }
     } catch (error) {
-      console.error('Direct Claude Vision OCR error:', error)
+      console.error('Netlify OCR error:', error)
       console.log('Falling back to local Tesseract OCR...')
       return await ocrService.extractTextMultiLang(imageBlob)
     }
