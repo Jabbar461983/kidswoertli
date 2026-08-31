@@ -1,129 +1,167 @@
-# Deployment Guide - KidsWörtli
+# 🚀 Deployment Guide - KidsWoertli
 
-Diese Anleitung beschreibt, wie man KidsWörtli auf Netlify deployed.
+## Schritt 1: Supabase Setup
 
-## Voraussetzungen
-
-- GitHub Account mit dem kidswoertli Repository
-- Netlify Account ([netlify.com](https://netlify.com))
-- Supabase Project (siehe SUPABASE_SETUP.md)
-
-## Schritt 1: Netlify verbinden
-
-1. Gehe zu [app.netlify.com](https://app.netlify.com)
-2. Klicke auf **"New site from Git"**
-3. Wähle **GitHub** als Git Provider
-4. Autorisiere Netlify für dein GitHub Account
-5. Wähle das Repository `kidswoertli`
-6. Wähle den Branch `claude/language-learning-pwa-melh2w` (oder den Live-Branch)
-
-## Schritt 2: Build-Konfiguration
-
-Netlify sollte folgende Einstellungen automatisch erkennen:
-
-- **Build command**: `npm run build`
-- **Publish directory**: `dist`
-
-Falls nicht, konfiguriere sie manuell unter **Site settings** → **Build & deploy** → **Build settings**.
-
-## Schritt 3: Environment Variables setzen
-
-1. Gehe zu **Site settings** → **Build & deploy** → **Environment**
-2. Klicke auf **Edit variables**
-3. Füge folgende Environment Variables hinzu:
-
+### 1.1 Neue Datenbank erstellen
 ```
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_JOKE_API_URL=https://v2.jokeapi.dev
+https://supabase.com → New Project
+- Name: kidswoertli
+- Region: Nächste zu dir
 ```
 
-## Schritt 4: Supabase Redirect URLs aktualisieren
+### 1.2 SQL-Migration ausführen
+```sql
+-- Gehe zu SQL Editor in Supabase
+-- Kopiere Inhalt von: supabase/migrations/001_init_schema.sql
+-- Führe aus und verifiziere
+```
 
-1. Gehe zu Supabase → **Authentication** → **URL Configuration**
-2. Aktualisiere **Site URL** zu deiner Netlify Domain:
-   - Format: `https://your-site-name.netlify.app`
-3. Füge die Netlify Domain zu **Redirect URLs** hinzu:
-   - `https://your-site-name.netlify.app/**`
+### 1.3 Environment Keys kopieren
+```
+Supabase Dashboard → Settings → API
+- VITE_SUPABASE_URL
+- VITE_SUPABASE_ANON_KEY
+```
 
-## Schritt 5: Deploy
+## Schritt 2: Anthropic API Key
 
-1. Committen und Push der Änderungen triggern automatisch einen Deploy
-2. Gehe zu **Deployments** um den Status zu sehen
-3. Die App ist verfügbar unter `https://your-site-name.netlify.app`
+```
+https://console.anthropic.com → API Keys
+- Neuen Key erstellen für Claude 3.5 Sonnet
+- Key: sk-ant-...
+```
 
-## PWA Installation
+## Schritt 3: Netlify Deployment
 
-Die App funktioniert als PWA. Nutzer können sie so installieren:
+### 3.1 Konfigurieren
+```bash
+# Repository verbinden
+netlify connect
+# oder über Dashboard: Connect to Git
+```
 
-### Android
-1. App öffnen im Chrome Browser
-2. Menü (⋮) → **"Zum Home-Bildschirm hinzufügen"**
-3. App wird als natives Icon auf dem Home-Screen hinzugefügt
+### 3.2 Build Settings
+```
+- Build command: npm run build
+- Publish directory: dist
+- Functions: netlify/functions
+```
 
-### iOS
-1. App öffnen im Safari Browser
-2. Teilen-Button → **"Zum Home-Bildschirm"**
-3. App wird als Web Clip installiert
+### 3.3 Environment Variables
+Netlify Dashboard → Site settings → Build & deploy → Environment
 
-### Desktop
-1. App in Chrome öffnen
-2. Adressleiste → Installieren-Button
-3. App wird wie eine native Desktop-App installiert
+```
+VITE_SUPABASE_URL=https://xxx.supabase.co
+VITE_SUPABASE_ANON_KEY=eyJhbG...
+ANTHROPIC_API_KEY=sk-ant-...
+```
 
-## Custom Domain
+### 3.4 Deploy
+```bash
+npm run build
+netlify deploy --prod
+```
 
-Um eine Custom Domain zu verwenden:
+## Schritt 4: Datenbank Backup & Sicherheit
 
-1. Gehe zu Netlify **Site settings** → **Domain management**
-2. Klicke **"Add custom domain"**
-3. Gib deine Domain ein
-4. Folge den DNS-Konfigurationsschritten
-5. Aktualisiere Supabase **URL Configuration** mit der neuen Domain
+### Regelmäßige Backups
+```
+Supabase Dashboard → Database → Backups
+- Automatische Backups aktivieren
+- Recovery Window: 30 Tage
+```
 
-## CI/CD Pipeline
+### Row Level Security (RLS) verifizieren
+```sql
+-- In Supabase SQL Editor:
+SELECT tablename FROM pg_tables 
+WHERE schemaname = 'public';
 
-Netlify führt automatisch aus:
+-- Für jede Tabelle:
+SELECT * FROM information_schema.table_privileges 
+WHERE table_name = 'flashcards';
+```
 
-1. `npm run build` - Build der App
-2. Deployment zur Netlify-CDN
-3. Auto-Preview für Pull Requests
+## Schritt 5: Monitoring & Maintenance
 
-## Troubleshooting
+### Netlify Functions Logs
+```
+Dashboard → Functions → Logs
+```
 
-### Build Error: "Missing Supabase environment variables"
-- Überprüfe, dass `VITE_SUPABASE_URL` und `VITE_SUPABASE_ANON_KEY` in Netlify gesetzt sind
-- Stelle sicher, dass die Namen genau stimmen (case-sensitive)
+### Supabase Logs
+```
+Dashboard → Database → Query performance
+```
 
-### Error: "CORS policy"
-- Überprüfe, dass die Netlify Domain in Supabase **URL Configuration** eingetragen ist
-- Warte 5 Minuten nach der Änderung, bis die Änderungen propagiert sind
+### Error Tracking
+```
+Browser Console → Check for errors
+Sentry Integration (optional)
+```
 
-### App lädt nicht
-- Öffne Browser DevTools (F12)
-- Überprüfe die Console auf Fehler
-- Überprüfe dass Supabase erreichbar ist
+## Schritt 6: Production Checkliste
 
-### Service Worker funktioniert nicht
-- Das ist normal, wenn die App nicht unter HTTPS läuft
-- Netlify stellt automatisch HTTPS bereit
+- [ ] Supabase RLS aktiv
+- [ ] API Key in Netlify (nicht im Code)
+- [ ] HTTPS aktiviert
+- [ ] Service Worker registriert
+- [ ] Manifest.json valid
+- [ ] Performance Test (Lighthouse)
+- [ ] Mobile Test (Chrome DevTools)
+- [ ] Backup-Strategie
+- [ ] Monitoring aktiviert
+- [ ] SSL/TLS aktiv
 
-## Monitoring
+## Schritt 7: Custom Domain (Optional)
 
-1. Gehe zu Netlify **Analytics** um Traffic zu sehen
-2. Überprüfe Netlify **Logs** (unter **Deployments**) für Build-Fehler
-3. Supabase **Logs** unter **Logs** → **API Requests** um Datenbankfehler zu sehen
+### Netlify Custom Domain
+```
+Dashboard → Domains → Add custom domain
+- Domain: kidswoertli.com
+- DNS settings anpassen
+```
 
-## Sicherheit
+### SSL Certificate
+```
+Netlify aktiviert automatisch Let's Encrypt
+```
 
-- Alle Environment Variables sind in Netlify verschlüsselt
-- Supabase Anon Key hat eingeschränkte Rechte (RLS Policies)
-- API-Requests sind verschlüsselt (HTTPS)
-- Service Worker cached nur kritische Assets
+## Häufige Probleme
 
-## Weitere Ressourcen
+### "Functions geben 500 Error"
+1. Netlify Logs checken
+2. Environment Variables gesetzt?
+3. Anthropic API Key gültig?
+4. Supabase Connection OK?
 
-- [Netlify Docs](https://docs.netlify.com)
-- [Supabase Docs](https://supabase.com/docs)
-- [Vite Docs](https://vitejs.dev)
-- [PWA Docs](https://web.dev/progressive-web-apps/)
+### "Datenbank-Queries zu langsam"
+1. Indexes verifizieren
+2. Supabase Logs → Query performance
+3. RLS Policies optimieren
+
+### "CORS Errors"
+1. Netlify Function Headers überprüfen
+2. Supabase CORS Settings
+3. Browser Console für Details
+
+## Performance Target
+
+- First Contentful Paint (FCP): < 1s
+- Largest Contentful Paint (LCP): < 2.5s
+- Cumulative Layout Shift (CLS): < 0.1
+- Time to Interactive (TTI): < 3.5s
+
+## Skalierung (Wenn nötig)
+
+### Supabase Upgrade
+- Free: bis 500MB DB, 2GB Bandwidth
+- Pro: $25/Monat, unbegrenzt
+
+### Netlify Upgrade
+- Free: 125k Funktions-Invocations/Monat
+- Pro: $19+/Monat
+
+---
+
+**Deployed successfully? 🎉 Tell your students about KidsWoertli!**

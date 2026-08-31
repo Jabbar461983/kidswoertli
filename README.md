@@ -1,173 +1,179 @@
-# KidsWörtli - PWA für Sprachenlernen
+# 🎓 KidsWoertli - Progressive Web App für Sprachenlernen
 
-Eine Progressive Web App für Kinder ab 15 Jahren zum Erlernen von Fremdsprachen (Französisch, Englisch) durch Karteikarten, OCR und interaktive Abfragemodi.
+Eine moderne PWA für Kinder (ab 16 Jahren) zum Erlernen von Französisch und Englisch durch intelligente OCR-basierte Vokabelkartentraining.
 
-## Features (MVP)
+## 🚀 Features
 
-- 📷 **OCR-Bilderfassung**: Fotografiere Buchseiten und extrahiere Wörter/Sätze automatisch
-- 📚 **Karteikarten-Management**: Erstelle, bearbeite und organisiere Karteikarten
-- 🎓 **Flexible Abfragemodi**:
-  - Schriftlich (eigene Antwort eingeben)
-  - Vorlesen (TTS - Text-to-Speech)
-  - Optisch (selbst übersetzen, dann vergleichen)
-- 📊 **Fehlercontainer**: Verwalte fehlerhafte Karteikarten in separaten Durchgängen
-- 👤 **Multi-User Accounts**: Benutzer-spezifische Daten und Authentifizierung
-- 🏆 **Motivations-API**: Witze und Aufmunterungen nach Lernrunden
-- 🎨 **Longchamp-Design**: Elegant und modisch gestaltet
+- **📸 Claude Vision OCR**: Fotografiere Vokabelseiten, KI erkennt automatisch Deutsch-Französisch/Englisch Paare
+- **🎯 Kartentraining**: Interaktives Üben mit Feedback und Fortschrittstracking
+- **💾 Offline-Funktionen**: Service Worker für Offline-Nutzung
+- **📱 Responsive Design**: Perfekt auf Handy, Tablet und Desktop
+- **🎉 Motivierende Sprüche**: 50+ deutsche Motivationssprüche für tägliche Motivation
+- **👨‍💼 Admin Panel**: Profile verwalten, Bilder hochladen, OCR testen
+- **⚡ PWA**: Installierbar als native App
 
-## Tech Stack
+## 🛠️ Tech Stack
 
-- **Frontend**: React 18 + TypeScript + Tailwind CSS
-- **OCR**: Tesseract.js
-- **TTS/STT**: Web Speech API
-- **Backend**: Supabase (Auth, Database, Storage)
-- **Hosting**: Netlify
+- **Frontend**: React 18 + TypeScript + Vite + Tailwind CSS
+- **Backend**: Netlify Functions (Node.js)
+- **Database**: Supabase PostgreSQL mit Row Level Security (RLS)
+- **AI/ML**: Claude 3.5 Sonnet für Vision OCR
+- **Auth**: Bcrypt + JWT/Session-based
+- **Storage**: Browser localStorage für Session
 
-## Setup
+## 📋 Datenbank-Schema
+
+### profiles
+- id, username, vorname, password_hash, is_admin
+- Speichert Nutzer- und Admin-Profile
+
+### flashcards
+- id, profile_id, language_a/b, text_a/b, confidence
+- Speichert extrahierte Vokabel-Paare pro Nutzer
+
+### learning_progress
+- id, profile_id, flashcard_id, correct_count, incorrect_count, mastered
+- Verfolgt Lernfortschritt (beherrscht nach 2x richtig)
+
+### app_settings
+- id, profile_id, anthropic_api_key, language_pair
+- Admin-Konfiguration pro Profil
+
+## 🔧 Setup & Installation
 
 ### Voraussetzungen
-- Node.js 16+
-- npm/yarn
-- Supabase Account
-
-### Installation
-
 ```bash
+- Node.js 18+
+- npm 9+
+- Supabase Account (kostenlos)
+- Netlify Account (kostenlos)
+- Anthropic API Key (mit Claude Vision Zugriff)
+```
+
+### 1. Lokales Setup
+```bash
+# Clone & Dependencies
+git clone <repo>
+cd kidswoertli
 npm install
+
+# Environment Variables
+cp .env.local.example .env.local
+# Fülle folgende ein:
+# - VITE_SUPABASE_URL
+# - VITE_SUPABASE_ANON_KEY
+# - ANTHROPIC_API_KEY
 ```
 
-### Environment Setup
-
-Erstelle `.env.local` Datei im Root-Verzeichnis:
-
-```env
-VITE_SUPABASE_URL=https://your-project.supabase.co
-VITE_SUPABASE_ANON_KEY=your-anon-key
-VITE_JOKE_API_URL=https://v2.jokeapi.dev
+### 2. Datenbank Init
+```bash
+# Supabase SQL Migration ausführen:
+# supabase/migrations/001_init_schema.sql
 ```
 
-### Entwicklung
-
+### 3. Local Dev
 ```bash
 npm run dev
+# http://localhost:5173 öffnet sich
 ```
 
-Die App lädt unter `http://localhost:3000`
-
-### Build
-
+### 4. Build & Deploy
 ```bash
 npm run build
+# netlify deploy --prod
 ```
 
-## Projekt-Struktur
+## 🎯 Workflow
 
-```
-src/
-├── components/
-│   ├── Auth/           # Login-Komponenten
-│   ├── Dashboard/      # Haupt-Dashboard
-│   ├── CardCapture/    # OCR & Karteikarten-Erfassung
-│   ├── Learning/       # Lernmodi
-│   └── Admin/          # Admin-Panel
-├── context/            # Auth Context
-├── services/
-│   ├── supabase.ts     # Supabase Integration
-│   ├── ocr.ts          # Tesseract.js Service
-│   ├── tts.ts          # Text-to-Speech & STT
-│   └── jokes.ts        # Witze-API Service
-├── types/              # TypeScript Interfaces
-└── App.tsx
-```
+### Für Admins:
+1. Login mit Admin-Account
+2. Admin Panel → Vokabelseite fotografieren
+3. Claude Vision erkennt automatisch Paare
+4. Bestätigen und speichern → In Datenbank
+5. Neue Profile erstellen für Schüler
 
-## Datenbankschema
+### Für Lernende:
+1. Login mit Schüler-Account
+2. Dashboard zeigt Lernfortschritt
+3. "Jetzt üben" → Learning Mode
+4. Flashcards durchgehen (Deutsch sehen → Französisch erraten)
+5. Feedback: ✓ Richtig / ✗ Versuche nochmal
+6. Nach 2x richtig: Karte als "Beherrscht" markiert
 
-Die Supabase-Migration wird in Phase 2 erstellt.
+## 📊 Lernfortschritt
 
-### Haupt-Tabellen:
-- `users` - Benutzeraccounts (Benutzername, Passwort, Admin-Status)
-- `learning_media` - Lernmedien (Bücher, Titel, Sprache)
-- `cards` - Karteikarten (Wort/Satz, Sprache, Buch, Seite, Kapitel)
-- `learning_sessions` - Lernrunden (Benutzer, Medium, ausgewählte Seiten)
-- `card_results` - Ergebnisse (Richtig/Falsch)
-- `error_rounds` - Fehler-Durchgänge (bis zu 5 pro Session)
+- Automatisches Tracking nach jeder Antwort
+- Beherrscht = 2x korrekt
+- Dashboard zeigt:
+  - Gesamte gelernte Vokabeln
+  - Beherrschte Vokabeln
+  - Erfolgsquote (%)
+  - Lernfortschritts-Balken
 
-## Projekt-Status
+## 🔐 Sicherheit
 
-- [x] Phase 1: Projekt-Setup & Auth ✅
-- [x] Phase 2: Karteikarten-Erfassung (OCR) ✅
-- [x] Phase 3: Abfragefunktionen & Fehlercontainer ✅
-- [x] Phase 4: UX & Polish ✅
+- Passwörter mit bcrypt gehashed
+- Row Level Security auf allen Datenbank-Tabellen
+- API Keys in Netlify Environment (nicht in Code)
+- Keine sensiblen Daten in localStorage
 
-## Quick Start
+## 🎨 Farbschema
 
-### Lokale Entwicklung
+- Primär: Lila (#a855f7) & Pink (#ec4899)
+- Erfolg: Grün (#22c55e)
+- Fehler: Rot (#ef4444)
+- Neutral: Grau-Scale
+- **Keine Emojis im Design** (nur in Texten)
 
-```bash
-# Dependencies installieren
-npm install
+## 📱 PWA Checkliste
 
-# Environment Setup
-cp .env.example .env.local
-# Füge deine Supabase Credentials in .env.local ein
+- ✅ manifest.json (Icons, Name, Display)
+- ✅ Service Worker (sw.js)
+- ✅ Offline-Support
+- ✅ Responsive Design
+- ✅ Installierbar auf Homescreen
 
-# Dev-Server starten
-npm run dev
-```
+## 🐛 Troubleshooting
 
-Öffne `http://localhost:3000` im Browser.
+### "OCR gibt keine Ergebnisse"
+- API Key überprüfen
+- Bildqualität kontrollieren
+- Prompt-Variante in OCR-Funktion anpassen
 
-### Supabase Setup
+### "Login funktioniert nicht"
+- Supabase URL & Key überprüfen
+- Profil in DB vorhanden?
+- Browser-Konsole auf Fehler prüfen
 
-Siehe [SUPABASE_SETUP.md](./SUPABASE_SETUP.md) für detaillierte Anleitung zur Datenbank-Konfiguration.
+### "Offline-Funktionen nicht aktiv"
+- Service Worker muss registriert sein
+- In Browser DevTools → Application → Service Workers prüfen
 
-### Deployment
+## 📚 OCR-Prompts
 
-Siehe [DEPLOYMENT.md](./DEPLOYMENT.md) für Netlify-Deployment-Anleitung.
+KidsWoertli testet automatisch mehrere Claude Vision Prompts:
+1. **STRICT**: Maximale Genauigkeit, weniger Abdeckung
+2. **RELAXED**: Balance aus Genauigkeit & Abdeckung (empfohlen)
+3. **STRUCTURED**: Konsistente JSON-Formatierung
+4. **MULTILINGUAL**: Robustheit gegen verschiedene Layouts
 
-## Features im MVP
+Erfolgs-Kriterium: **≥90% Genauigkeit** auf erwartete Vokabeln
 
-✅ **Bilderfassung & OCR**
-- Tesseract.js für automatische Texterkennung
-- Upload von Fotos oder Kamera
-- Manuelle Bearbeitung erkannter Texte
+## 🚀 Performance Optimizations
 
-✅ **Karteikarten-Management**
-- Erstelle Karteikarten mit Metadaten (Buch, Seite, Kapitel)
-- Organisiere in Lernmedien
-- Bearbeiten und Löschen
+- Code-Splitting mit React.lazy()
+- Image-Lazy-Loading
+- Service Worker Caching
+- Minified Build
+- CDN über Netlify
 
-✅ **Drei Lernmodi**
-- **Schriftlich**: Tippe die Übersetzung
-- **Sprechen**: Sprich die Übersetzung (Speech Recognition)
-- **Lesen**: Übersetze selbst, kontrolliere Antwort
+## 📞 Support
 
-✅ **Fehler-Management**
-- Separate Fehler-Container pro Lernrunde
-- Bis zu 5 Fehler-Durchgänge speichern
-- Fehler-Karteikarten können gelöscht werden
+Bei Fragen oder Bugs:
+1. GitHub Issues checken
+2. Logs in Browser Console
+3. Netlify Function Logs prüfen
 
-✅ **Motivations-Features**
-- Motivationsmeldungen nach jeder Frage
-- Witze von JokeAPI nach Abschluss
-- Erfolgsquoten mit Feedback
+---
 
-✅ **Multi-User**
-- Benutzer-Authentifizierung via Supabase
-- Benutzername + Passwort
-- Admin-Panel für Passwort-Reset
-
-✅ **PWA Features**
-- Offline-Funktionalität (geplant)
-- Installierbar auf Mobile/Desktop
-- Manifest.json für App-Shortcuts
-- Dark Mode Support
-
-✅ **Longchamp Design**
-- Elegant und modern
-- Schwarz/Gold/Elfenbein Farbschema
-- Responsive für Mobile (Mobile-First)
-
-## Lizenz
-
-Privat
+**Made with ❤️ for young language learners**

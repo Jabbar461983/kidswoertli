@@ -2,6 +2,8 @@ import { useEffect, useState } from "react";
 import { useAuth } from "../contexts/AuthContext";
 import { getFlashcards, getProgress } from "../api/supabase";
 import { getRandomQuote } from "../data/quotes";
+import { LearningMode } from "./LearningMode";
+import { AdminPanel } from "./AdminPanel";
 import type { FlashCard, LearningProgress } from "../types";
 
 export function Dashboard() {
@@ -10,6 +12,7 @@ export function Dashboard() {
   const [progress, setProgress] = useState<LearningProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [quote, setQuote] = useState(getRandomQuote());
+  const [view, setView] = useState<"dashboard" | "learning" | "admin">("dashboard");
 
   useEffect(() => {
     loadData();
@@ -35,6 +38,14 @@ export function Dashboard() {
   const totalCards = flashcards.length;
   const masteredPercentage =
     totalCards > 0 ? Math.round((masteredCount / totalCards) * 100) : 0;
+
+  if (view === "learning") {
+    return <LearningMode onBack={() => setView("dashboard")} />;
+  }
+
+  if (view === "admin") {
+    return <AdminPanel onBack={() => setView("dashboard")} />;
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-pink-50">
@@ -100,30 +111,40 @@ export function Dashboard() {
         {profile?.is_admin && (
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
             <h2 className="text-lg font-bold text-blue-700 mb-4">Admin Panel</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                Bilder für OCR hochladen
-              </button>
-              <button className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">
-                Profile verwalten
-              </button>
-            </div>
+            <button
+              onClick={() => setView("admin")}
+              className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+            >
+              Admin Panel öffnen
+            </button>
           </div>
         )}
 
         {/* Flashcards Section */}
         <div>
-          <h2 className="text-xl font-bold text-gray-800 mb-4">
-            Deine Vokabeln ({totalCards})
-          </h2>
+          <div className="flex justify-between items-center mb-6">
+            <h2 className="text-xl font-bold text-gray-800">
+              Deine Vokabeln ({totalCards})
+            </h2>
+            {totalCards > 0 && (
+              <button
+                onClick={() => setView("learning")}
+                className="bg-gradient-to-r from-purple-500 to-pink-500 text-white px-6 py-2 rounded-lg hover:opacity-90 transition font-medium"
+              >
+                🎯 Jetzt üben
+              </button>
+            )}
+          </div>
           {loading ? (
             <p className="text-gray-500">Laden...</p>
           ) : totalCards === 0 ? (
             <div className="bg-white rounded-lg shadow p-8 text-center">
               <p className="text-gray-500 mb-4">Keine Vokabeln vorhanden</p>
-              <button className="bg-purple-600 text-white px-6 py-2 rounded-lg hover:bg-purple-700 transition">
-                Erste Vokabeln hinzufügen
-              </button>
+              <p className="text-sm text-gray-500 mb-4">
+                {profile?.is_admin
+                  ? "Laden Sie Bilder über das Admin Panel hoch"
+                  : "Fragen Sie einen Administrator"}
+              </p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
