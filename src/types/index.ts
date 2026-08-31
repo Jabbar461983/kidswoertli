@@ -1,69 +1,53 @@
-export type Language = 'fr' | 'en'
-
-export interface User {
-  id: string
-  username: string
-  email?: string
-  is_admin: boolean
-  created_at: string
-  updated_at: string
+export interface Profile {
+  id: number;
+  username: string;
+  vorname: string;
+  is_admin: boolean;
 }
 
-export interface LearningMedium {
-  id: string
-  user_id: string
-  title: string
-  language: Language
-  created_at: string
-  updated_at: string
+export interface FlashCard {
+  id: number;
+  profile_id: number;
+  language_a: string;
+  text_a: string;
+  language_b: string;
+  text_b: string;
+  source_image_url?: string;
+  confidence: number;
+  created_at: string;
 }
 
-export interface Card {
-  id: string
-  medium_id: string
-  page: number
-  chapter: string
-  german: string
-  foreign_text: string
-  language: Language
-  created_at: string
-  updated_at: string
+export interface LearningProgress {
+  id: number;
+  profile_id: number;
+  flashcard_id: number;
+  correct_count: number;
+  incorrect_count: number;
+  last_practiced?: string;
+  mastered: boolean;
 }
 
-export interface LearningSession {
-  id: string
-  user_id: string
-  medium_id: string
-  language: Language
-  selected_pages: number[]
-  selected_chapters: string[]
-  created_at: string
-  updated_at: string
+export interface AppSettings {
+  id: number;
+  profile_id: number;
+  anthropic_api_key: string;
+  language_pair: string;
 }
 
-export interface CardResult {
-  id: string
-  session_id: string
-  card_id: string
-  is_correct: boolean
-  created_at: string
+export interface AuthState {
+  profile: Profile | null;
+  token: string | null;
+  isLoading: boolean;
+  error: string | null;
 }
 
-export interface ErrorRound {
-  id: string
-  session_id: string
-  round_number: number
-  cards: Card[]
-  correct_count: number
-  error_count: number
-  created_at: string
-}
-
-export interface AuthContextType {
-  user: User | null
-  loading: boolean
-  login: (email: string, password: string) => Promise<void>
-  register: (email: string, password: string, username?: string) => Promise<void>
-  logout: () => Promise<void>
-  isAdmin: boolean
+export interface OCRResult {
+  pairs: Array<{
+    de: string;
+    fr?: string;
+    en?: string;
+    confidence: number;
+  }>;
+  total: number;
+  confidence: "high" | "medium" | "low";
 }

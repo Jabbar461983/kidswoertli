@@ -1,158 +1,143 @@
-import { Handler } from '@netlify/functions'
-import { createClient } from '@supabase/supabase-js'
+import Anthropic from "@anthropic-ai/sdk";
 
-const handler: Handler = async (event, context) => {
-  // Handle CORS preflight
-  if (event.httpMethod === 'OPTIONS') {
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-      },
-      body: '',
-    }
-  }
+interface OCRRequest {
+  imageBase64: string;
+  mediaType: "image/jpeg" | "image/png" | "image/gif" | "image/webp";
+  languagePair: string;
+}
 
-  if (event.httpMethod !== 'POST') {
-    return {
-      statusCode: 405,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-      },
-      body: JSON.stringify({ error: 'Method not allowed' }),
-    }
+interface VocabularyPair {
+  de: string;
+  fr?: string;
+  en?: string;
+  confidence: number;
+}
+
+interface OCRResponse {
+  pairs: VocabularyPair[];
+  total: number;
+  confidence: "high" | "medium" | "low";
+}
+
+const PROMPTS: Record<string, string> = {
+  "de-fr": `Extrahiere alle Vokabel-Paare aus dieser Deutsch-Französisch Seite.
+
+Sei nachsichtig mit:
+- Leerzeichen-Unterschieden
+- Kleineren Formatierungsvariationen
+- Ähnlichen Schreibvarianten
+
+JSON OUTPUT (ONLY):
+{
+  "pairs": [
+    {"de": "...", "fr": "..."},
+    ...
+  ],
+  "total": <number>,
+  "notes": "Alle erkannten Paare"
+}`,
+
+  "de-en": `Extrahiere alle Vokabel-Paare aus dieser Deutsch-Englisch Seite.
+
+Antworte NUR mit gültigem JSON:
+{
+  "pairs": [
+    {"de": "...", "en": "..."},
+    ...
+  ],
+  "total": <number>
+}`,
+};
+
+export default async (req: any) => {
+  if (req.method !== "POST") {
+    return { statusCode: 405, body: "Method Not Allowed" };
   }
 
   try {
-    // Parse the request
-    if (!event.body) {
+    const { imageBase64, mediaType, languagePair } = JSON.parse(
+      req.body
+    ) as OCRRequest;
+
+    if (!imageBase64 || !mediaType) {
       return {
         statusCode: 400,
-        headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'No body provided' }),
-      }
+        body: JSON.stringify({ error: "Missing imageBase64 or mediaType" }),
+      };
     }
 
-    const { imageBase64, mediaType } = JSON.parse(event.body)
+    const client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
 
-    if (!imageBase64) {
-      return {
-        statusCode: 400,
-        headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'No image provided' }),
-      }
-    }
+    const prompt = PROMPTS[languagePair] || PROMPTS["de-fr"];
 
-    // Initialize Supabase client
-    const supabaseUrl = process.env.VITE_SUPABASE_URL
-    const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY
-
-    if (!supabaseUrl || !supabaseKey) {
-      return {
-        statusCode: 500,
-        headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'Supabase configuration missing' }),
-      }
-    }
-
-    const supabase = createClient(supabaseUrl, supabaseKey)
-
-    // Fetch API key from Supabase
-    const { data: settings, error: settingsError } = await supabase
-      .from('app_settings')
-      .select('anthropic_api_key')
-      .eq('id', 1)
-      .single()
-
-    if (settingsError || !settings || !settings.anthropic_api_key) {
-      return {
-        statusCode: 400,
-        headers: { 'Access-Control-Allow-Origin': '*' },
-        body: JSON.stringify({ error: 'API key not configured' }),
-      }
-    }
-
-    const apiKey = settings.anthropic_api_key
-
-    // Call Claude Vision API
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'claude-3-5-sonnet-20241022',
-        max_tokens: 2000,
-        messages: [
-          {
-            role: 'user',
-            content: [
-              {
-                type: 'image',
-                source: {
-                  type: 'base64',
-                  media_type: mediaType || 'image/jpeg',
-                  data: imageBase64,
-                },
+    const response = await client.messages.create({
+      model: "claude-3-5-sonnet-20241022",
+      max_tokens: 2048,
+      messages: [
+        {
+          role: "user",
+          content: [
+            {
+              type: "image",
+              source: {
+                type: "base64",
+                media_type: mediaType,
+                data: imageBase64,
               },
-              {
-                type: 'text',
-                text: `Bitte erkenne den Text in diesem Bild sehr genau und präzise.
+            },
+            {
+              type: "text",
+              text: prompt,
+            },
+          ],
+        },
+      ],
+    });
 
-Gib den erkannten Text genau so aus, wie er im Bild steht, Zeile für Zeile.
-Ignoriere keine Wörter und achte auf korrekte Rechtschreibung.
+    const responseText =
+      response.content[0].type === "text" ? response.content[0].text : "";
 
-Antworte NUR mit dem erkannten Text, nichts anderes.`,
-              },
-            ],
-          },
-        ],
-      }),
-    })
+    try {
+      const jsonMatch = responseText.match(/\{[\s\S]*\}/);
+      if (!jsonMatch) {
+        throw new Error("No JSON found in response");
+      }
 
-    if (!response.ok) {
-      const errorData = await response.json()
-      console.error('Claude API error:', errorData)
+      const parsed = JSON.parse(jsonMatch[0]);
+      const pairs = parsed.pairs || [];
+
+      const result: OCRResponse = {
+        pairs: pairs.map((p: any) => ({
+          de: p.de || "",
+          fr: p.fr,
+          en: p.en,
+          confidence: 0.95,
+        })),
+        total: pairs.length,
+        confidence: pairs.length > 10 ? "high" : "medium",
+      };
+
       return {
-        statusCode: response.status,
-        headers: { 'Access-Control-Allow-Origin': '*' },
+        statusCode: 200,
+        body: JSON.stringify(result),
+      };
+    } catch (parseError) {
+      console.error("Parse error:", parseError);
+      return {
+        statusCode: 400,
         body: JSON.stringify({
-          error: 'OCR failed',
-          details: errorData.error?.message || 'Unknown error',
+          error: "Failed to parse OCR response",
+          raw: responseText.substring(0, 500),
         }),
-      }
+      };
     }
-
-    const result = await response.json()
-    const extractedText = result.content[0].text.trim()
-
-    return {
-      statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        text: extractedText,
-        confidence: 0.95,
-        success: true,
-      }),
-    }
-  } catch (error) {
-    console.error('Error:', error)
+  } catch (error: any) {
+    console.error("OCR Error:", error);
     return {
       statusCode: 500,
-      headers: { 'Access-Control-Allow-Origin': '*' },
-      body: JSON.stringify({
-        error: 'Internal server error',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      }),
-    }
+      body: JSON.stringify({ error: error.message }),
+    };
   }
-}
-
-export { handler }
+};

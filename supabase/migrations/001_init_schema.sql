@@ -1,155 +1,84 @@
--- Create custom users table (extends auth.users)
-CREATE TABLE IF NOT EXISTS public.users (
-  id UUID PRIMARY KEY REFERENCES auth.users (id) ON DELETE CASCADE,
-  username TEXT UNIQUE NOT NULL,
-  email TEXT,
+-- KidsWoertli Database Schema
+-- Complete initialization with RLS policies
+
+-- 1. PROFILES TABLE (User & Admin)
+CREATE TABLE IF NOT EXISTS profiles (
+  id BIGSERIAL PRIMARY KEY,
+  username VARCHAR(50) UNIQUE NOT NULL,
+  vorname VARCHAR(50) NOT NULL,
+  password_hash VARCHAR(255) NOT NULL,
   is_admin BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create learning_media table
-CREATE TABLE IF NOT EXISTS public.learning_media (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users (id) ON DELETE CASCADE,
-  title TEXT NOT NULL,
-  language VARCHAR(2) NOT NULL CHECK (language IN ('fr', 'en')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+-- 2. FLASHCARDS TABLE (Vocabulary pairs)
+CREATE TABLE IF NOT EXISTS flashcards (
+  id BIGSERIAL PRIMARY KEY,
+  profile_id BIGINT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  language_a VARCHAR(2) NOT NULL DEFAULT 'de',
+  text_a TEXT NOT NULL,
+  language_b VARCHAR(2) NOT NULL,
+  text_b TEXT NOT NULL,
+  source_image_url TEXT,
+  confidence FLOAT DEFAULT 0.95,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create cards table
-CREATE TABLE IF NOT EXISTS public.cards (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  medium_id UUID NOT NULL REFERENCES public.learning_media (id) ON DELETE CASCADE,
-  page INTEGER NOT NULL,
-  chapter TEXT,
-  german TEXT NOT NULL,
-  foreign_text TEXT NOT NULL,
-  language VARCHAR(2) NOT NULL CHECK (language IN ('fr', 'en')),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+-- 3. LEARNING_PROGRESS TABLE
+CREATE TABLE IF NOT EXISTS learning_progress (
+  id BIGSERIAL PRIMARY KEY,
+  profile_id BIGINT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  flashcard_id BIGINT NOT NULL REFERENCES flashcards(id) ON DELETE CASCADE,
+  correct_count INT DEFAULT 0,
+  incorrect_count INT DEFAULT 0,
+  last_practiced TIMESTAMP,
+  mastered BOOLEAN DEFAULT FALSE,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(profile_id, flashcard_id)
 );
 
--- Create learning_sessions table
-CREATE TABLE IF NOT EXISTS public.learning_sessions (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES public.users (id) ON DELETE CASCADE,
-  medium_id UUID NOT NULL REFERENCES public.learning_media (id) ON DELETE CASCADE,
-  language VARCHAR(2) NOT NULL CHECK (language IN ('fr', 'en')),
-  selected_pages INTEGER[] NOT NULL DEFAULT '{}',
-  selected_chapters TEXT[] NOT NULL DEFAULT '{}',
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now(),
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+-- 4. APP_SETTINGS TABLE
+CREATE TABLE IF NOT EXISTS app_settings (
+  id BIGSERIAL PRIMARY KEY,
+  profile_id BIGINT NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  anthropic_api_key VARCHAR(255),
+  language_pair VARCHAR(10) DEFAULT 'de-fr',
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE(profile_id)
 );
 
--- Create card_results table
-CREATE TABLE IF NOT EXISTS public.card_results (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id UUID NOT NULL REFERENCES public.learning_sessions (id) ON DELETE CASCADE,
-  card_id UUID NOT NULL REFERENCES public.cards (id) ON DELETE CASCADE,
-  is_correct BOOLEAN NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
+-- 5. ROW LEVEL SECURITY (RLS)
+ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE flashcards ENABLE ROW LEVEL SECURITY;
+ALTER TABLE learning_progress ENABLE ROW LEVEL SECURITY;
+ALTER TABLE app_settings ENABLE ROW LEVEL SECURITY;
 
--- Create error_rounds table
-CREATE TABLE IF NOT EXISTS public.error_rounds (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  session_id UUID NOT NULL REFERENCES public.learning_sessions (id) ON DELETE CASCADE,
-  round_number INTEGER NOT NULL,
-  cards JSONB NOT NULL,
-  correct_count INTEGER NOT NULL DEFAULT 0,
-  error_count INTEGER NOT NULL DEFAULT 0,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
+-- Profiles: Users can see all profiles
+CREATE POLICY "profiles_select" ON profiles FOR SELECT USING (TRUE);
 
--- Create indexes
-CREATE INDEX idx_learning_media_user_id ON public.learning_media (user_id);
-CREATE INDEX idx_cards_medium_id ON public.cards (medium_id);
-CREATE INDEX idx_cards_page ON public.cards (page);
-CREATE INDEX idx_learning_sessions_user_id ON public.learning_sessions (user_id);
-CREATE INDEX idx_learning_sessions_medium_id ON public.learning_sessions (medium_id);
-CREATE INDEX idx_card_results_session_id ON public.card_results (session_id);
-CREATE INDEX idx_card_results_card_id ON public.card_results (card_id);
-CREATE INDEX idx_error_rounds_session_id ON public.error_rounds (session_id);
+-- Flashcards: Users can only access their own
+CREATE POLICY "flashcards_select" ON flashcards FOR SELECT USING (profile_id = auth.uid()::bigint);
+CREATE POLICY "flashcards_insert" ON flashcards FOR INSERT WITH CHECK (profile_id = auth.uid()::bigint);
+CREATE POLICY "flashcards_update" ON flashcards FOR UPDATE USING (profile_id = auth.uid()::bigint);
+CREATE POLICY "flashcards_delete" ON flashcards FOR DELETE USING (profile_id = auth.uid()::bigint);
 
--- Enable RLS
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.learning_media ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.cards ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.learning_sessions ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.card_results ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.error_rounds ENABLE ROW LEVEL SECURITY;
+-- Learning Progress: Users can only access their own
+CREATE POLICY "progress_select" ON learning_progress FOR SELECT USING (profile_id = auth.uid()::bigint);
+CREATE POLICY "progress_insert" ON learning_progress FOR INSERT WITH CHECK (profile_id = auth.uid()::bigint);
+CREATE POLICY "progress_update" ON learning_progress FOR UPDATE USING (profile_id = auth.uid()::bigint);
 
--- RLS Policies
-CREATE POLICY "Users can view their own data" ON public.users
-  FOR SELECT USING (auth.uid() = id);
+-- App Settings: Users can only access their own
+CREATE POLICY "settings_select" ON app_settings FOR SELECT USING (profile_id = auth.uid()::bigint);
+CREATE POLICY "settings_insert" ON app_settings FOR INSERT WITH CHECK (profile_id = auth.uid()::bigint);
+CREATE POLICY "settings_update" ON app_settings FOR UPDATE USING (profile_id = auth.uid()::bigint);
 
-CREATE POLICY "Allow public read users" ON public.users
-  FOR SELECT USING (true);
-
-CREATE POLICY "Users can view their own media" ON public.learning_media
-  FOR SELECT USING (user_id = auth.uid());
-
-CREATE POLICY "Users can insert their own media" ON public.learning_media
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Users can update their own media" ON public.learning_media
-  FOR UPDATE USING (user_id = auth.uid());
-
-CREATE POLICY "Users can delete their own media" ON public.learning_media
-  FOR DELETE USING (user_id = auth.uid());
-
-CREATE POLICY "Users can view cards from their media" ON public.cards
-  FOR SELECT USING (medium_id IN (
-    SELECT id FROM public.learning_media WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can insert cards into their media" ON public.cards
-  FOR INSERT WITH CHECK (medium_id IN (
-    SELECT id FROM public.learning_media WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can update cards in their media" ON public.cards
-  FOR UPDATE USING (medium_id IN (
-    SELECT id FROM public.learning_media WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can delete cards in their media" ON public.cards
-  FOR DELETE USING (medium_id IN (
-    SELECT id FROM public.learning_media WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can view their sessions" ON public.learning_sessions
-  FOR SELECT USING (user_id = auth.uid());
-
-CREATE POLICY "Allow public read learning_sessions" ON public.learning_sessions
-  FOR SELECT USING (true);
-
-CREATE POLICY "Users can create sessions" ON public.learning_sessions
-  FOR INSERT WITH CHECK (user_id = auth.uid());
-
-CREATE POLICY "Users can view results from their sessions" ON public.card_results
-  FOR SELECT USING (session_id IN (
-    SELECT id FROM public.learning_sessions WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can insert results to their sessions" ON public.card_results
-  FOR INSERT WITH CHECK (session_id IN (
-    SELECT id FROM public.learning_sessions WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can view error rounds from their sessions" ON public.error_rounds
-  FOR SELECT USING (session_id IN (
-    SELECT id FROM public.learning_sessions WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can create error rounds" ON public.error_rounds
-  FOR INSERT WITH CHECK (session_id IN (
-    SELECT id FROM public.learning_sessions WHERE user_id = auth.uid()
-  ));
-
-CREATE POLICY "Users can delete error rounds" ON public.error_rounds
-  FOR DELETE USING (session_id IN (
-    SELECT id FROM public.learning_sessions WHERE user_id = auth.uid()
-  ));
+-- 6. INDEXES
+CREATE INDEX idx_flashcards_profile ON flashcards(profile_id);
+CREATE INDEX idx_flashcards_language ON flashcards(language_a, language_b);
+CREATE INDEX idx_progress_profile ON learning_progress(profile_id);
+CREATE INDEX idx_progress_mastered ON learning_progress(mastered);
+CREATE INDEX idx_settings_profile ON app_settings(profile_id);
