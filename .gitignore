@@ -12,3 +12,12 @@ yarn-error.log*
 .idea/
 *.swp
 *.swo
+
+# Test images (OCR testing)
+test-images/
+*.test.jpg
+*.test.png
+
+# Environment files (API Keys)
+.env.local
+.env*.local
