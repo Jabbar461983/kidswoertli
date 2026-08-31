@@ -9,6 +9,7 @@
     "lint": "eslint src --ext ts,tsx"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.122.0",
     "@netlify/functions": "^6.0.0",
     "@supabase/supabase-js": "^2.38.4",
     "axios": "^1.6.2",
