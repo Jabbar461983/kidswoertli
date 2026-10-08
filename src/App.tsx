@@ -10,6 +10,7 @@ import { ResultsPage } from '@/components/Learning/ResultsPage'
 import { CollectionsPage } from '@/components/Collections/CollectionsPage'
 import { AdminLoginPage } from '@/components/Admin/AdminLoginPage'
 import { AdminDashboard } from '@/components/Admin/AdminDashboard'
+import { PaeckliPage } from '@/components/Paeckli/PaeckliPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth()
@@ -83,6 +84,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <ResultsPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/paeckli"
+            element={
+              <ProtectedRoute>
+                <PaeckliPage />
               </ProtectedRoute>
             }
           />

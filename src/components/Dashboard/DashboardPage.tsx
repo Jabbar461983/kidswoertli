@@ -40,6 +40,20 @@ export function DashboardPage() {
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-12">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Card: Klassenwortschatz Päckli */}
+          <div
+            onClick={() => navigate('/paeckli')}
+            className="bg-longchamp-gold/20 dark:bg-longchamp-black border-2 border-longchamp-gold rounded-lg p-6 cursor-pointer hover:shadow-lg transition duration-200 transform hover:scale-105 md:col-span-2 lg:col-span-3"
+          >
+            <div className="text-4xl mb-4">🇫🇷</div>
+            <h2 className="text-xl font-bold mb-2 text-longchamp-black dark:text-longchamp-ivory">
+              Klassenwortschatz Päckli 3A &amp; 3B
+            </h2>
+            <p className="text-gray-600 dark:text-gray-400">
+              Karten, Lückentext und m/f üben – bis zum Fixpunkt 3 am 20.10.
+            </p>
+          </div>
+
           {/* Card: Neue Karteikarten */}
           <div
             onClick={() => navigate('/capture')}
