@@ -1,7 +1,9 @@
 # Statische App ohne Build-Schritt: Netlify veröffentlicht den Ordner so, wie er ist.
+# Der Befehl muss hier stehen (nicht leer), sonst nimmt Netlify den alten
+# Build-Befehl aus den Projekt-Einstellungen.
 [build]
   publish = "."
-  command = ""
+  command = "echo 'Kein Build nötig: statische App'"
 
 [[headers]]
   for = "/sw.js"
