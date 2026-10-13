@@ -578,11 +578,40 @@ function scoreLine(res){
   return `<div class="score" aria-live="polite"><span class="s-ok">${ok} richtig</span><span class="s-nok">${nok} falsch</span><span class="muted" style="padding-left:0">von ${res.length}</span></div>`;
 }
 
+/* Abschluss einer Lücken- oder m/f-Runde */
+function roundSummary(box, res, label, onAll, onWrong){
+  const keys = Object.keys(res);
+  const ok = keys.filter(k => res[k]==="ok").length, nok = keys.length - ok;
+  const msg = nok === 0 ? "Alles richtig, super!" : ok >= nok ? "Gut gemacht!" : "Weiter üben, das kommt!";
+  box.innerHTML = `
+    <h2>Runde fertig</h2>
+    <p class="muted" style="margin:0">${msg}</p>
+    <div class="summary">
+      <div class="stat"><b>${ok}</b>richtig</div>
+      <div class="stat n"><b>${nok}</b>falsch</div>
+    </div>
+    ${nok ? `<div class="empty" style="border-style:solid">${keys.filter(k => res[k]==="nok").map(label).join("")}</div>` : ""}
+    <div class="btns">
+      <button class="btn ghost" id="rAll">Neue Runde</button>
+      <button class="btn" id="rWrong" ${nok ? "" : "disabled"}>Falsche nochmals</button>
+    </div>`;
+  box.querySelector("#rAll").onclick = onAll;
+  box.querySelector("#rWrong").onclick = () => onWrong(keys.filter(k => res[k]==="nok"));
+  box.querySelector(nok ? "#rWrong" : "#rAll").focus();
+}
+
 /* ---------- Lücken ---------- */
-let gap = {order: shuffle([...GAPS.keys()]), i:0, done:false, tip:false};
+const newGapRound = (idx = [...GAPS.keys()]) => ({order: shuffle([...idx]), i:0, done:false, res:{}});
+let gap = newGapRound();
 function renderGap(){
   const P = $("#p-gaps");
-  const gi = gap.order[gap.i % GAPS.length];
+  if (gap.i >= gap.order.length){
+    return roundSummary(P, gap.res,
+      k => { const g = GAPS[k]; return `<div>${esc(g.pre)}<b>${esc(g.ans)}</b>${esc(g.post)}</div>`; },
+      () => { gap = newGapRound(); renderGap(); },
+      wrong => { gap = newGapRound(wrong.map(Number)); renderGap(); });
+  }
+  const gi = gap.order[gap.i];
   const g = GAPS[gi];
   P.innerHTML = `
     <p class="muted" style="margin:0">Setze das fehlende Wort ein. Die deutsche Übersetzung hilft dir.</p>
@@ -597,7 +626,7 @@ function renderGap(){
       <button class="btn ghost" id="gapTip">Tipp</button>
       <button class="btn" id="gapCheck">Prüfen</button>
     </div>
-    <span class="num">${gap.i % GAPS.length + 1} / ${GAPS.length}</span>`;
+    <span class="num">${gap.i + 1} / ${gap.order.length}${gap.order.length < GAPS.length ? " · nur falsche" : ""}</span>`;
   const inp = $("#gapIn");
   inp.addEventListener("keydown", e => { if (e.key==="Enter") $("#gapCheck").click(); });
   $("#gapTip").onclick = () => {
@@ -613,17 +642,18 @@ function renderGap(){
     if (norm(v) === norm(g.ans)) { r = "ok"; fb = `<div class="feedback ok">Richtig! ${esc(full)}</div>`; }
     else if (noAcc(v) === noAcc(g.ans)) fb = `<div class="feedback warn">Fast! Achte auf die Akzente: <b>${esc(g.ans)}</b></div>`;
     else fb = `<div class="feedback nok">Richtig wäre: <b>${esc(g.ans)}</b></div>`;
-    S.gaps[gi] = r; save(); renderFix();
+    S.gaps[gi] = r; gap.res[gi] = r; save(); renderFix();
     const sc = P.querySelector(".score"); if (sc) sc.outerHTML = scoreLine(GAPS.map((_, i) => S.gaps[i]));
     $("#gapFb").innerHTML = fb + `<div class="say-line" style="margin-top:10px;align-items:center"><div class="muted">${esc(full)}</div>${speakBtn(full,"fr-FR")}</div>`;
     inp.disabled = true; gap.done = true;
-    $("#gapCheck").textContent = "Weiter"; $("#gapCheck").focus();
+    $("#gapCheck").textContent = gap.i + 1 >= gap.order.length ? "Auswertung" : "Weiter"; $("#gapCheck").focus();
   };
   inp.focus({preventScroll:true});
 }
 
 /* ---------- Genus ---------- */
-let gen = {order: shuffle([...GENUS.keys()]), i:0, done:false};
+const newGenRound = (idx = [...GENUS.keys()]) => ({order: shuffle([...idx]), i:0, done:false, res:{}});
+let gen = newGenRound();
 function art(x){
   const vowel = /^[aeiouh]/.test(x.w);
   if (x.g==="m/f") return `${vowel?"l'":"le/la "}${x.w} · un/une ${x.w}`;
@@ -632,7 +662,13 @@ function art(x){
 }
 function renderGenus(){
   const P = $("#p-genus");
-  const x = GENUS[gen.order[gen.i % GENUS.length]];
+  if (gen.i >= gen.order.length){
+    return roundSummary(P, gen.res,
+      k => { const y = GENUS.find(z => z.w === k); return `<div><b>${esc(art(y).split(" · ")[0])}</b> – ${esc(y.de)}</div>`; },
+      () => { gen = newGenRound(); renderGenus(); },
+      wrong => { gen = newGenRound(wrong.map(w => GENUS.findIndex(z => z.w === w))); renderGenus(); });
+  }
+  const x = GENUS[gen.order[gen.i]];
   P.innerHTML = `
     ${scoreLine(GENUS.map(y => S.genus[y.w]))}
     <p class="muted" style="margin:0">Männlich oder weiblich? Auf dem Blatt stehen (m) und (f) bei einigen Wörtern, die übrigen Nomen stammen aus den Sätzen.</p>
@@ -647,20 +683,21 @@ function renderGenus(){
       <button data-g="m/f">beides<small>le/la</small></button>
     </div>
     <div class="row" style="justify-content:space-between">
-      <span class="num">${gen.i % GENUS.length + 1} / ${GENUS.length}</span>
+      <span class="num">${gen.i + 1} / ${gen.order.length}${gen.order.length < GENUS.length ? " · nur falsche" : ""}</span>
       <button class="btn" id="genNext" disabled style="padding:8px 16px">Weiter</button>
     </div>`;
   document.querySelectorAll("#genBtns button").forEach(b => b.onclick = () => {
     if (gen.done) return;
     gen.done = true;
     const right = b.dataset.g === x.g;
-    S.genus[x.w] = right ? "ok" : "nok"; save(); renderFix();
+    S.genus[x.w] = right ? "ok" : "nok"; gen.res[x.w] = S.genus[x.w]; save(); renderFix();
     const sc = P.querySelector(".score"); if (sc) sc.outerHTML = scoreLine(GENUS.map(y => S.genus[y.w]));
     document.querySelectorAll("#genBtns button").forEach(o => { if (o.dataset.g===x.g) o.classList.add("right"); });
     if (!right) b.classList.add("wrong");
     const a = art(x);
     $("#genFb").innerHTML = `<div class="feedback ${right?"ok":"nok"}">${right?"Richtig!":"Nicht ganz."} ${esc(a)}</div>`;
     say(a.split(" · ")[0].replace("/"," ou "), "fr-FR");
+    if (gen.i + 1 >= gen.order.length) $("#genNext").textContent = "Auswertung";
     $("#genNext").disabled = false; $("#genNext").focus();
   });
   $("#genNext").onclick = () => { gen.i++; gen.done=false; renderGenus(); };
@@ -724,7 +761,7 @@ function switchProfile(name){
   P.current = name; saveProfiles();
   loadState();
   sel = newSel();
-  round = null;
+  round = null; gap = newGapRound(); gen = newGenRound();
   $("#welcome").hidden = true; $("#app").hidden = false;
   $("#play").hidden = true; $("#setup").hidden = false;
   document.querySelector('.tabs button[data-tab="cards"]').click();

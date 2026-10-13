@@ -1,6 +1,6 @@
 // KidsWörtli Service Worker: App offline verfügbar machen.
 // Bei jeder Änderung an der App VERSION erhöhen, damit Geräte die neue Version laden.
-const VERSION = "kidswoertli-v2";
+const VERSION = "kidswoertli-v3";
 const FILES = [
   "/",
   "/index.html",
