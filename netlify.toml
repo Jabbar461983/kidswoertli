@@ -1,12 +1,22 @@
+# Statische App ohne Build-Schritt: Netlify veröffentlicht den Ordner so, wie er ist.
+# Kein echter Build: die App-Dateien werden nur in den Ordner "dist" kopiert,
+# den Netlify veröffentlicht. (Ein leerer Befehl würde ignoriert und der alte
+# "npm run build" aus den Projekt-Einstellungen liefe.)
 [build]
-  command = "npm run build"
-  functions = "netlify/functions"
   publish = "dist"
+  command = "rm -rf dist && mkdir dist && cp -r index.html sw.js manifest.webmanifest icons dist/"
 
-[functions]
-  node_bundler = "esbuild"
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
 
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+[[headers]]
+  for = "/index.html"
+  [headers.values]
+    Cache-Control = "no-cache"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"

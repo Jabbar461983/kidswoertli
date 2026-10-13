@@ -1,27 +1,626 @@
 <!doctype html>
 <html lang="de">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <meta name="description" content="KidsWörtli - Progressive Web App zum Erlernen von Fremdsprachen mit OCR und KI" />
-    <meta name="theme-color" content="#1a1a1a" />
-    <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="KidsWörtli" />
-    <link rel="manifest" href="/manifest.json" />
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect fill='%231a1a1a' width='100' height='100'/><text x='50' y='75' font-size='60' fill='%23d4af37' text-anchor='middle'>📚</text></svg>" />
-    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 180 180'><rect fill='%231a1a1a' width='180' height='180'/><text x='90' y='130' font-size='100' fill='%23d4af37' text-anchor='middle'>📚</text></svg>" />
-    <title>KidsWörtli - Sprachenlernen</title>
-  </head>
-  <body class="bg-longchamp-ivory dark:bg-longchamp-black text-longchamp-black dark:text-longchamp-ivory">
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    <script>
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/sw.js').catch(() => {
-          // Service worker not available or failed
-        })
-      }
-    </script>
-  </body>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#4c7a60">
+<meta name="description" content="KidsWörtli – Französisch-Klassenwortschatz üben">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="KidsWörtli">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="/manifest.webmanifest">
+<link rel="icon" type="image/png" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/apple-touch-icon.png">
+<title>KidsWörtli</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Baloo+2:wght@600;700&display=swap">
+<style>
+/* Layout: one narrow column like a school sheet; Fixpunkt strip on top, tabbed practice modes below */
+:root{
+  --bg:#f4f6f1; --surface:#ffffff; --ink:#22302a; --muted:#5d6a63; --line:#d8ded5;
+  --sage:#4c7a60; --sage-soft:#e2ece4; --rose:#9f5f73; --rose-soft:#f3e5ea;
+  --ok:#2c7a4c; --ok-soft:#dcefe2; --nok:#b0453a; --nok-soft:#f7e1dd; --warn:#94620d; --warn-soft:#f8ecd3;
+  --f-display:"Baloo 2","Trebuchet MS",system-ui,sans-serif;
+  --f-body:"Atkinson Hyperlegible",system-ui,-apple-system,"Segoe UI",sans-serif;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#141a17; --surface:#1d2521; --ink:#e6ece8; --muted:#9ba69f; --line:#303b35;
+  --sage:#87b99b; --sage-soft:#22312a; --rose:#d69aad; --rose-soft:#3a2830;
+  --ok:#72c793; --ok-soft:#1f3527; --nok:#ee8b7e; --nok-soft:#3d2421; --warn:#e0b45e; --warn-soft:#3a2e17; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#141a17; --surface:#1d2521; --ink:#e6ece8; --muted:#9ba69f; --line:#303b35;
+  --sage:#87b99b; --sage-soft:#22312a; --rose:#d69aad; --rose-soft:#3a2830;
+  --ok:#72c793; --ok-soft:#1f3527; --nok:#ee8b7e; --nok-soft:#3d2421; --warn:#e0b45e; --warn-soft:#3a2e17; color-scheme:dark}
+*{box-sizing:border-box}
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+[hidden]{display:none!important}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--f-body);font-size:16px;line-height:1.5}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px;padding-block:20px 48px;display:flex;flex-direction:column;gap:18px}
+h1,h2,h3{font-family:var(--f-display);line-height:1.1;margin:0;text-wrap:balance}
+h1{font-size:1.9rem;font-weight:700}
+h2{font-size:1.3rem;font-weight:700}
+.eyebrow{font-size:.75rem;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.muted{color:var(--muted)}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid var(--sage);outline-offset:2px}
+
+header{display:flex;flex-direction:column;gap:4px}
+header p{margin:0;color:var(--muted)}
+
+/* Fixpunkt */
+.fix{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:16px;display:flex;flex-direction:column;gap:12px}
+.fix-top{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+.days{font-family:var(--f-display);font-size:2.6rem;font-weight:700;color:var(--rose);line-height:1;font-variant-numeric:tabular-nums}
+.fix-top div{min-width:0}
+.steps{display:flex;flex-wrap:wrap;gap:5px}
+.steps span{width:14px;height:14px;border-radius:50%;background:var(--rose-soft);border:1px solid var(--line)}
+.steps span.goal{background:var(--rose);border-color:var(--rose);border-radius:3px}
+.bars{display:flex;flex-direction:column;gap:8px}
+.bar-row{display:grid;grid-template-columns:4.5rem 1fr auto;gap:10px;align-items:center;font-size:.9rem}
+.bar{display:flex;height:10px;border-radius:5px;overflow:hidden;background:var(--line)}
+.bar i{display:block;height:100%}
+.bar .b-ok{background:var(--ok)} .bar .b-nok{background:var(--nok)}
+.num{font-variant-numeric:tabular-nums;color:var(--muted)}
+.plan{margin:0;font-size:.95rem}
+
+/* Tabs */
+.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sage-soft);padding:4px;border-radius:12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.tabs button{border:0;background:transparent;padding:9px 4px;border-radius:9px;font-weight:700;font-size:.9rem;color:var(--muted)}
+.tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
+
+.panel{display:flex;flex-direction:column;gap:14px}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chip{border:1.5px solid var(--line);background:var(--surface);padding:7px 12px;border-radius:999px;font-size:.9rem;font-weight:700}
+.chip[aria-pressed="true"]{border-color:var(--sage);background:var(--sage-soft);color:var(--ink)}
+.seg{display:inline-flex;border:1.5px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{border:0;background:var(--surface);padding:7px 10px;font-size:.85rem;font-weight:700;color:var(--muted)}
+.seg button+button{border-left:1.5px solid var(--line)}
+.seg button[aria-pressed="true"]{background:var(--sage-soft);color:var(--ink)}
+.dir-block{display:flex;flex-direction:column;gap:6px}
+.dir{display:flex;flex-direction:column;gap:6px}
+.dir button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px}
+.dir button small{color:var(--muted);font-size:.82rem}
+.dir button[aria-pressed="true"]{border-color:var(--sage);background:var(--sage-soft);box-shadow:inset 4px 0 0 var(--sage)}
+.btn{border:0;border-radius:12px;padding:12px 18px;font-weight:700;background:var(--sage);color:var(--surface)}
+.btn.ghost{background:transparent;border:1.5px solid var(--line);color:var(--ink)}
+.btn.ok{background:var(--ok);color:var(--surface)}
+.btn.nok{background:var(--nok);color:var(--surface)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btns{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+/* Card */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:18px;padding:22px 18px;display:flex;flex-direction:column;gap:14px;min-height:260px}
+.card-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font-size:.75rem;font-weight:700;padding:3px 8px;border-radius:6px;background:var(--rose-soft);color:var(--rose)}
+.say-line{display:flex;align-items:flex-start;gap:10px}
+.say-line > div{min-width:0;flex:1}
+.q{font-family:var(--f-display);font-size:1.7rem;font-weight:600;line-height:1.2;overflow-wrap:anywhere}
+.a{font-size:1.25rem;font-weight:700;color:var(--sage);overflow-wrap:anywhere}
+.speak{flex:none;width:42px;height:42px;border-radius:50%;border:1.5px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.speak svg{width:20px;height:20px;fill:none;stroke:var(--ink);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.divider{height:1px;background:var(--line)}
+.progress{height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.progress i{display:block;height:100%;background:var(--sage);transition:width .25s}
+.empty{padding:16px;border:1.5px dashed var(--line);border-radius:14px;color:var(--muted)}
+.summary{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.stat{border-radius:12px;padding:12px;background:var(--ok-soft)}
+.stat.n{background:var(--nok-soft)}
+.stat b{display:block;font-family:var(--f-display);font-size:1.8rem;line-height:1;font-variant-numeric:tabular-nums}
+
+/* Gap */
+.gap-sentence{font-family:var(--f-display);font-size:1.45rem;font-weight:600;line-height:1.4;overflow-wrap:anywhere}
+.gap-input{font:inherit;font-family:var(--f-body);font-size:1.1rem;padding:4px 8px;border:0;border-bottom:2.5px solid var(--sage);background:var(--sage-soft);color:var(--ink);border-radius:6px 6px 0 0;width:9.5em;max-width:100%}
+.feedback{padding:10px 12px;border-radius:10px;font-weight:700}
+.feedback.ok{background:var(--ok-soft);color:var(--ok)}
+.feedback.nok{background:var(--nok-soft);color:var(--nok)}
+.feedback.warn{background:var(--warn-soft);color:var(--warn)}
+
+/* Genus */
+.genus-btns{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.genus-btns button{border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:12px 6px;font-weight:700;display:flex;flex-direction:column;gap:2px;align-items:center}
+.genus-btns small{font-weight:400;color:var(--muted)}
+.genus-btns button.right{border-color:var(--ok);background:var(--ok-soft)}
+.genus-btns button.wrong{border-color:var(--nok);background:var(--nok-soft)}
+
+/* Sheet */
+.note{background:var(--sage-soft);border-radius:12px;padding:12px 14px;font-size:.92rem}
+.note ul{margin:6px 0 0;padding-left:18px}
+.pack{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+.pack-h{display:flex;justify-content:space-between;align-items:baseline;padding:10px 14px;background:var(--rose-soft)}
+.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px 14px;border-top:1px solid var(--line);font-size:.95rem}
+.pair > div{min-width:0;overflow-wrap:anywhere}
+.pair.flag{background:var(--warn-soft)}
+.fixbox{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;font-size:.88rem}
+.fixbox s{color:var(--nok)}
+.fixbox ins{text-decoration:none;color:var(--ok);font-weight:700}
+.fixbox .seg button{font-size:.8rem}
+.g-badge{font-size:.72rem;font-weight:700;color:var(--rose);margin-left:4px}
+
+.toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.9rem;max-width:calc(100% - 32px)}
+/* Profile */
+.profiles{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.profiles .chip{padding:5px 12px}
+.add-chip{border-style:dashed}
+.welcome{background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:20px 16px;display:flex;flex-direction:column;gap:12px}
+.welcome p{margin:0}
+.name-form{display:flex;gap:8px;flex-wrap:wrap}
+.name-form input{flex:1;min-width:0;font:inherit;padding:10px 12px;border:1.5px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink)}
+.linkbtn{border:0;background:none;padding:0;color:var(--muted);text-decoration:underline;font-size:.85rem}
+footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <span class="eyebrow">KidsWörtli · Französisch</span>
+    <h1>Päckli 3A &amp; 3B</h1>
+    <div class="profiles" id="profiles" aria-label="Wer übt?"></div>
+  </header>
+
+  <section class="welcome" id="welcome" hidden>
+    <h2>Wer übt?</h2>
+    <p class="muted">Gib deinen Namen ein. Jedes Kind bekommt seinen eigenen Lernstand auf diesem Gerät.</p>
+    <form class="name-form" id="nameForm">
+      <input id="nameInput" maxlength="20" autocomplete="off" placeholder="Name" aria-label="Name">
+      <button class="btn" type="submit">Los geht's</button>
+    </form>
+    <button class="linkbtn" type="button" id="cancelAdd" hidden>Abbrechen</button>
+  </section>
+
+  <div id="app" class="panel" style="gap:18px">
+  <section class="fix" aria-labelledby="fixh">
+    <div class="fix-top">
+      <span class="days" id="days">–</span>
+      <div>
+        <h2 id="fixh">Tage bis Fixpunkt 3</h2>
+        <span class="muted" id="fixdate">Dienstag, 20.10.2026</span>
+      </div>
+    </div>
+    <div class="steps" id="steps" aria-hidden="true"></div>
+    <div class="bars" id="bars"></div>
+    <p class="plan" id="plan"></p>
+  </section>
+
+  <nav class="tabs" role="tablist">
+    <button role="tab" id="t-cards" aria-selected="true" data-tab="cards">Karten</button>
+    <button role="tab" id="t-gaps" aria-selected="false" data-tab="gaps">Lücken</button>
+    <button role="tab" id="t-genus" aria-selected="false" data-tab="genus">m / f</button>
+    <button role="tab" id="t-sheet" aria-selected="false" data-tab="sheet">Blatt</button>
+  </nav>
+
+  <!-- Karteikarten -->
+  <section class="panel" id="p-cards" role="tabpanel">
+    <div id="setup" class="panel">
+      <div class="row" id="packChips"></div>
+      <div class="dir-block">
+        <span class="eyebrow" id="dirLabel">Abfragerichtung</span>
+        <div class="dir" id="dirSeg" role="group" aria-labelledby="dirLabel">
+          <button data-dir="fd" aria-pressed="false"><b>Nur Französisch → Deutsch</b><small>Du siehst Französisch und sagst Deutsch</small></button>
+          <button data-dir="df" aria-pressed="false"><b>Nur Deutsch → Französisch</b><small>Du siehst Deutsch und sagst Französisch</small></button>
+          <button data-dir="mix" aria-pressed="true"><b>Gemischt</b><small>Beide Richtungen zufällig</small></button>
+        </div>
+      </div>
+      <div class="row">
+        <button class="chip" id="onlyNok" aria-pressed="false">Nur nicht gewusste</button>
+      </div>
+      <button class="btn" id="start">Runde starten</button>
+      <p class="muted" id="setupInfo" style="margin:0;font-size:.9rem"></p>
+    </div>
+    <div id="play" class="panel" hidden></div>
+  </section>
+
+  <!-- Lücken -->
+  <section class="panel" id="p-gaps" role="tabpanel" hidden></section>
+
+  <!-- Genus -->
+  <section class="panel" id="p-genus" role="tabpanel" hidden></section>
+
+  <!-- Blatt -->
+  <section class="panel" id="p-sheet" role="tabpanel" hidden></section>
+  </div>
+
+  <footer>Jeder Schritt vorwärts zählt, egal wie klein er ist.</footer>
+</div>
+<div class="toast" id="toast" hidden></div>
+
+<script>
+const FIXPUNKT = new Date(2026, 9, 20);
+const PACKS = {"3A":"KW 37","3B":"KW 38"};
+
+const CARDS = [
+  {id:"a1",p:"3A",fr:"Ça dure…",de:"Es dauert…"},
+  {id:"a2",p:"3A",fr:"Il y a…",de:"Es hat…"},
+  {id:"a3",p:"3A",fr:"Ça dure quelques minutes/secondes.",de:"Es dauert einige Minuten/Sekunden."},
+  {id:"a4",p:"3A",fr:"Il y a beaucoup de chevaux.",de:"Es hat viele Pferde."},
+  {id:"a5",p:"3A",fr:"des garçons",de:"Jungen",g:"m"},
+  {id:"a6",p:"3A",fr:"des filles",de:"Mädchen",g:"f"},
+  {id:"a7",p:"3A",fr:"des enfants",de:"Kinder",g:"m/f"},
+  {id:"a8",p:"3A",fr:"beaucoup de personnes",de:"viele Leute"},
+  {id:"b1",p:"3B",fr:"On peut…",de:"Man kann…"},
+  {id:"b2",p:"3B",fr:"Je trouve ça…",de:"Ich finde das…"},
+  {id:"b3",p:"3B",fr:"On peut voir un spectacle.",de:"Man kann eine Vorstellung sehen."},
+  {id:"b4",p:"3B",fr:"Je trouve ça magnifique.",de:"Ich finde das wunderschön."},
+  {id:"b5",p:"3B",fr:"extraordinaire",de:"aussergewöhnlich"},
+  {id:"b6",p:"3B",fr:"impressionnant",de:"beeindruckend"}
+];
+
+const FIXES = [
+  {id:"f1",card:"a4",field:"fr",orig:"Il y a beaucoup des cheveaux.",
+   why:"Nach «beaucoup» steht «de», nicht «des». Und «cheveux» heisst Haare, Pferde sind «chevaux»."},
+  {id:"f2",card:"b6",field:"fr",orig:"impresionnant",why:"Mit Doppel-s: impressionnant."},
+  {id:"f3",card:"b3",field:"de",orig:"Man kann eine Vorsrtellung sehen.",why:"Buchstabendreher: Vorstellung."}
+];
+
+const GAPS = [
+  {p:"3A",pre:"Ça ",ans:"dure",post:" quelques minutes.",hint:"Es dauert einige Minuten."},
+  {p:"3A",pre:"Il ",ans:"y",post:" a beaucoup de personnes.",hint:"Es hat viele Leute."},
+  {p:"3A",pre:"Il y a beaucoup ",ans:"de",post:" chevaux.",hint:"Es hat viele Pferde."},
+  {p:"3A",pre:"Il y a beaucoup de ",ans:"chevaux",post:".",hint:"Es hat viele Pferde."},
+  {p:"3B",pre:"On ",ans:"peut",post:" voir un spectacle.",hint:"Man kann eine Vorstellung sehen."},
+  {p:"3B",pre:"On peut voir un ",ans:"spectacle",post:".",hint:"Man kann eine Vorstellung sehen."},
+  {p:"3B",pre:"Je ",ans:"trouve",post:" ça magnifique.",hint:"Ich finde das wunderschön."},
+  {p:"3B",pre:"Je trouve ça ",ans:"impressionnant",post:".",hint:"Ich finde das beeindruckend."}
+];
+
+const GENUS = [
+  {w:"garçon",de:"Junge",g:"m",src:"Blatt"},
+  {w:"fille",de:"Mädchen",g:"f",src:"Blatt"},
+  {w:"enfant",de:"Kind",g:"m/f",src:"Blatt"},
+  {w:"personne",de:"Person",g:"f",src:"aus den Sätzen"},
+  {w:"cheval",de:"Pferd",g:"m",src:"aus den Sätzen"},
+  {w:"spectacle",de:"Vorstellung",g:"m",src:"aus den Sätzen"},
+  {w:"minute",de:"Minute",g:"f",src:"aus den Sätzen"},
+  {w:"seconde",de:"Sekunde",g:"f",src:"aus den Sätzen"}
+];
+
+/* ---------- Profile & state ---------- */
+const PKEY = "kidswoertli-profiles";
+let P = {list:[], current:null};
+try { const raw = localStorage.getItem(PKEY); if (raw) P = Object.assign(P, JSON.parse(raw)); } catch(e){}
+function saveProfiles(){ try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch(e){} }
+const stateKey = () => "kidswoertli-paeckli3-" + P.current;
+
+let S = {status:{}, fixes:{}};
+function loadState(){
+  S = {status:{}, fixes:{}};
+  try { const raw = localStorage.getItem(stateKey()); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch(e){}
+}
+function save(){ if (!P.current) return; try { localStorage.setItem(stateKey(), JSON.stringify(S)); } catch(e){} }
+const status = id => S.status[id] || "neu";
+
+function text(card, field){
+  const f = FIXES.find(x => x.card === card.id && x.field === field);
+  if (f && S.fixes[f.id] === "orig") return f.orig;
+  return card[field];
+}
+
+/* ---------- helpers ---------- */
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+function toast(msg){ const t=$("#toast"); t.textContent=msg; t.hidden=false; clearTimeout(toast._t); toast._t=setTimeout(()=>t.hidden=true,2600); }
+const speakIcon = '<svg viewBox="0 0 24 24"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/><path d="M19 6a8.5 8.5 0 0 1 0 12"/></svg>';
+function speakBtn(txt, lang){ return `<button class="speak" data-say="${esc(txt)}" data-lang="${lang}" aria-label="Vorlesen">${speakIcon}</button>`; }
+
+function say(txt, lang){
+  try {
+    if (!("speechSynthesis" in window)) throw 0;
+    const u = new SpeechSynthesisUtterance(txt.replace(/…/g,"").replace(/\//g," oder ").replace(/\(.*?\)/g,""));
+    u.lang = lang; u.rate = .9;
+    const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith(lang.slice(0,2)));
+    if (v) u.voice = v;
+    speechSynthesis.cancel(); speechSynthesis.speak(u);
+  } catch(e){ toast("Vorlesen wird auf diesem Gerät nicht unterstützt."); }
+}
+document.addEventListener("click", e => {
+  const b = e.target.closest("[data-say]");
+  if (b) say(b.dataset.say, b.dataset.lang);
+});
+const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
+const norm = s => s.trim().toLowerCase().replace(/\s+/g," ").replace(/[’']/g,"'");
+const noAcc = s => norm(s).normalize("NFD").replace(/[̀-ͯ]/g,"");
+
+/* ---------- Fixpunkt ---------- */
+function renderFix(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  const days = Math.round((FIXPUNKT - today) / 864e5);
+  $("#days").textContent = days >= 0 ? days : "0";
+  $("#fixh").textContent = days > 0 ? (days === 1 ? "Tag bis Fixpunkt 3" : "Tage bis Fixpunkt 3") : (days === 0 ? "Heute ist Fixpunkt 3" : "Fixpunkt 3 ist vorbei");
+  const n = Math.max(0, Math.min(days, 40));
+  $("#steps").innerHTML = Array.from({length:n}, (_,i) => `<span class="${i===n-1?'goal':''}"></span>`).join("");
+
+  $("#bars").innerHTML = Object.keys(PACKS).map(p => {
+    const cs = CARDS.filter(c => c.p === p);
+    const ok = cs.filter(c => status(c.id)==="ok").length;
+    const nok = cs.filter(c => status(c.id)==="nok").length;
+    return `<div class="bar-row"><span><b>${p}</b> <span class="muted">${PACKS[p]}</span></span>
+      <div class="bar" role="img" aria-label="${ok} gewusst, ${nok} nicht gewusst von ${cs.length}">
+        <i class="b-ok" style="width:${ok/cs.length*100}%"></i><i class="b-nok" style="width:${nok/cs.length*100}%"></i></div>
+      <span class="num">${ok}/${cs.length}</span></div>`;
+  }).join("");
+
+  const open = CARDS.filter(c => status(c.id) !== "ok").length;
+  const nok = CARDS.filter(c => status(c.id) === "nok").length;
+  let plan;
+  if (open === 0) plan = "Alle Karten sitzen. Bis zum Fixpunkt reicht eine kurze Runde alle zwei Tage zum Wiederholen.";
+  else if (days <= 0) plan = `Noch ${open} Karten offen. Heute nochmals alle durchgehen.`;
+  else {
+    const perDay = Math.ceil(open / Math.max(1, days - 1));
+    plan = `Noch <b>${open}</b> Karten offen${nok ? `, davon ${nok} nicht gewusst` : ""}. Mit <b>${perDay} Karte${perDay>1?"n":""} pro Tag</b> bist du einen Tag vor dem Fixpunkt fertig.`;
+  }
+  $("#plan").innerHTML = plan;
+}
+
+/* ---------- Tabs ---------- */
+document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll(".tabs button").forEach(x => x.setAttribute("aria-selected", x===b));
+  ["cards","gaps","genus","sheet"].forEach(t => $("#p-"+t).hidden = t !== b.dataset.tab);
+  if (b.dataset.tab === "gaps") renderGap();
+  if (b.dataset.tab === "genus") renderGenus();
+  if (b.dataset.tab === "sheet") renderSheet();
+}));
+
+/* ---------- Karteikarten ---------- */
+let sel = {packs:new Set(["3A","3B"]), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix", onlyNok:false};
+let round = null;
+
+function pool(){
+  return CARDS.filter(c => sel.packs.has(c.p) && (!sel.onlyNok || status(c.id)==="nok"));
+}
+function renderSetup(){
+  $("#packChips").innerHTML = Object.keys(PACKS).map(p =>
+    `<button class="chip" data-pack="${p}" aria-pressed="${sel.packs.has(p)}">Päckli ${p} · ${PACKS[p]}</button>`).join("");
+  document.querySelectorAll("[data-pack]").forEach(b => b.onclick = () => {
+    sel.packs.has(b.dataset.pack) ? sel.packs.delete(b.dataset.pack) : sel.packs.add(b.dataset.pack);
+    renderSetup();
+  });
+  $("#onlyNok").setAttribute("aria-pressed", sel.onlyNok);
+  document.querySelectorAll("#dirSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.dir===sel.dir));
+  const n = pool().length;
+  const nokCount = CARDS.filter(c => status(c.id)==="nok").length;
+  $("#start").disabled = n === 0;
+  $("#setupInfo").textContent = n === 0
+    ? (sel.onlyNok ? "Keine nicht gewussten Karten in dieser Auswahl. Super!" : "Wähle mindestens ein Päckli.")
+    : `${n} Karten ausgewählt, ${({fd:"nur Französisch → Deutsch",df:"nur Deutsch → Französisch",mix:"gemischt"})[sel.dir]}. Nicht gewusste kommen etwa 1,5-mal so oft dran${nokCount ? ` (aktuell ${nokCount})` : ""}.`;
+}
+$("#onlyNok").onclick = () => { sel.onlyNok = !sel.onlyNok; renderSetup(); };
+document.querySelectorAll("#dirSeg button").forEach(b => b.onclick = () => { sel.dir = b.dataset.dir; S.dir = sel.dir; save(); renderSetup(); });
+
+$("#start").onclick = () => {
+  const deck = [];
+  pool().forEach(c => {
+    deck.push(c);
+    if (status(c.id)==="nok" && Math.random() < .5) deck.push(c); // Faktor 1,5
+  });
+  shuffle(deck);
+  for (let i=1;i<deck.length;i++) if (deck[i]===deck[i-1]) { const j=(i+1)%deck.length; [deck[i],deck[j]]=[deck[j],deck[i]]; }
+  round = {deck: deck.map(c => ({c, dir: sel.dir==="mix" ? (Math.random()<.5?"fd":"df") : sel.dir})), i:0, shown:false, res:{}};
+  $("#setup").hidden = true; $("#play").hidden = false;
+  renderCard();
+};
+
+function renderCard(){
+  const P = $("#play");
+  if (round.i >= round.deck.length) return renderSummary();
+  const {c, dir} = round.deck[round.i];
+  const fr = text(c,"fr"), de = text(c,"de");
+  const q = dir==="fd" ? fr : de, a = dir==="fd" ? de : fr;
+  const ql = dir==="fd" ? "fr-FR" : "de-CH", al = dir==="fd" ? "de-CH" : "fr-FR";
+  const st = status(c.id);
+  P.innerHTML = `
+    <div class="progress" aria-hidden="true"><i style="width:${round.i/round.deck.length*100}%"></i></div>
+    <div class="card">
+      <div class="card-head">
+        <span class="eyebrow">${dir==="fd" ? "Französisch → Deutsch" : "Deutsch → Französisch"}</span>
+        <span class="tag">${c.p}${st==="nok" ? " · üben" : ""}</span>
+      </div>
+      <div class="say-line"><div class="q">${esc(q)}${c.g && dir==="fd" ? `<span class="g-badge">(${c.g})</span>` : ""}</div>${speakBtn(q, ql)}</div>
+      ${round.shown ? `<div class="divider"></div>
+      <div class="say-line"><div class="a">${esc(a)}${c.g && dir==="df" ? `<span class="g-badge">(${c.g})</span>` : ""}</div>${speakBtn(a, al)}</div>` : ""}
+    </div>
+    ${round.shown
+      ? `<div class="btns"><button class="btn nok" id="nok">Nicht gewusst</button><button class="btn ok" id="ok">Gewusst</button></div>`
+      : `<button class="btn" id="show">Lösung zeigen</button>`}
+    <div class="row" style="justify-content:space-between">
+      <span class="num">${round.i+1} / ${round.deck.length}</span>
+      <button class="btn ghost" id="stop" style="padding:8px 14px">Runde beenden</button>
+    </div>`;
+  if (round.shown){
+    $("#ok").onclick = () => answer("ok");
+    $("#nok").onclick = () => answer("nok");
+    $("#ok").focus();
+  } else {
+    $("#show").onclick = () => { round.shown = true; renderCard(); };
+    $("#show").focus();
+  }
+  $("#stop").onclick = () => { round.deck = round.deck.slice(0, round.i); renderSummary(); };
+}
+function answer(r){
+  const {c} = round.deck[round.i];
+  round.res[c.id] = r; S.status[c.id] = r; save();
+  round.i++; round.shown = false;
+  renderFix(); renderCard();
+}
+function renderSummary(){
+  const ids = Object.keys(round.res);
+  const ok = ids.filter(id => round.res[id]==="ok").length, nok = ids.length - ok;
+  $("#play").innerHTML = `
+    <h2>Runde fertig</h2>
+    <div class="summary">
+      <div class="stat"><b>${ok}</b>gewusst</div>
+      <div class="stat n"><b>${nok}</b>nicht gewusst</div>
+    </div>
+    ${nok ? `<div class="empty" style="border-style:solid">${ids.filter(id=>round.res[id]==="nok").map(id => { const c = CARDS.find(x=>x.id===id); return `<div><b>${esc(text(c,"fr"))}</b> – ${esc(text(c,"de"))}</div>`; }).join("")}</div>` : ""}
+    <div class="btns">
+      <button class="btn ghost" id="back">Zur Auswahl</button>
+      <button class="btn" id="again" ${nok ? "" : "disabled"}>Nicht gewusste üben</button>
+    </div>`;
+  $("#back").onclick = () => { $("#play").hidden = true; $("#setup").hidden = false; renderSetup(); };
+  $("#again").onclick = () => { sel.onlyNok = true; renderSetup(); $("#start").click(); };
+}
+
+/* ---------- Lücken ---------- */
+let gap = {order: shuffle([...GAPS.keys()]), i:0, done:false, tip:false};
+function renderGap(){
+  const P = $("#p-gaps");
+  const g = GAPS[gap.order[gap.i % GAPS.length]];
+  P.innerHTML = `
+    <p class="muted" style="margin:0">Setze das fehlende Wort ein. Die deutsche Übersetzung hilft dir.</p>
+    <div class="card" style="min-height:0">
+      <div class="card-head"><span class="eyebrow">Lückentext</span><span class="tag">${g.p}</span></div>
+      <div class="gap-sentence">${esc(g.pre)}<input class="gap-input" id="gapIn" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Fehlendes Wort">${esc(g.post)}</div>
+      <div class="muted">${esc(g.hint)}</div>
+      <div id="gapFb"></div>
+    </div>
+    <div class="btns">
+      <button class="btn ghost" id="gapTip">Tipp</button>
+      <button class="btn" id="gapCheck">Prüfen</button>
+    </div>
+    <span class="num">${gap.i % GAPS.length + 1} / ${GAPS.length}</span>`;
+  const inp = $("#gapIn");
+  inp.addEventListener("keydown", e => { if (e.key==="Enter") $("#gapCheck").click(); });
+  $("#gapTip").onclick = () => {
+    $("#gapFb").innerHTML = `<div class="feedback warn">Es beginnt mit «${esc(g.ans[0])}» und hat ${g.ans.length} Buchstaben.</div>`;
+  };
+  $("#gapCheck").onclick = () => {
+    if (gap.done){ gap.i++; gap.done=false; renderGap(); return; }
+    const v = inp.value;
+    if (!v.trim()){ inp.focus(); return; }
+    const full = g.pre + g.ans + g.post;
+    let fb;
+    if (norm(v) === norm(g.ans)) fb = `<div class="feedback ok">Richtig! ${esc(full)}</div>`;
+    else if (noAcc(v) === noAcc(g.ans)) fb = `<div class="feedback warn">Fast! Achte auf die Akzente: <b>${esc(g.ans)}</b></div>`;
+    else fb = `<div class="feedback nok">Richtig wäre: <b>${esc(g.ans)}</b></div>`;
+    $("#gapFb").innerHTML = fb + `<div class="say-line" style="margin-top:10px;align-items:center"><div class="muted">${esc(full)}</div>${speakBtn(full,"fr-FR")}</div>`;
+    inp.disabled = true; gap.done = true;
+    $("#gapCheck").textContent = "Weiter"; $("#gapCheck").focus();
+  };
+  inp.focus({preventScroll:true});
+}
+
+/* ---------- Genus ---------- */
+let gen = {order: shuffle([...GENUS.keys()]), i:0, done:false};
+function art(x){
+  const vowel = /^[aeiouh]/.test(x.w);
+  if (x.g==="m/f") return `${vowel?"l'":"le/la "}${x.w} · un/une ${x.w}`;
+  if (x.g==="m") return `${vowel?"l'":"le "}${x.w} · un ${x.w}`;
+  return `${vowel?"l'":"la "}${x.w} · une ${x.w}`;
+}
+function renderGenus(){
+  const P = $("#p-genus");
+  const x = GENUS[gen.order[gen.i % GENUS.length]];
+  P.innerHTML = `
+    <p class="muted" style="margin:0">Männlich oder weiblich? Auf dem Blatt stehen (m) und (f) bei einigen Wörtern, die übrigen Nomen stammen aus den Sätzen.</p>
+    <div class="card" style="min-height:0">
+      <div class="card-head"><span class="eyebrow">Genus</span><span class="tag">${x.src}</span></div>
+      <div class="say-line"><div><div class="q">${esc(x.w)}</div><div class="muted">${esc(x.de)}</div></div>${speakBtn(x.w,"fr-FR")}</div>
+      <div id="genFb"></div>
+    </div>
+    <div class="genus-btns" id="genBtns">
+      <button data-g="m">männlich<small>le / un</small></button>
+      <button data-g="f">weiblich<small>la / une</small></button>
+      <button data-g="m/f">beides<small>le/la</small></button>
+    </div>
+    <div class="row" style="justify-content:space-between">
+      <span class="num">${gen.i % GENUS.length + 1} / ${GENUS.length}</span>
+      <button class="btn" id="genNext" disabled style="padding:8px 16px">Weiter</button>
+    </div>`;
+  document.querySelectorAll("#genBtns button").forEach(b => b.onclick = () => {
+    if (gen.done) return;
+    gen.done = true;
+    const right = b.dataset.g === x.g;
+    document.querySelectorAll("#genBtns button").forEach(o => { if (o.dataset.g===x.g) o.classList.add("right"); });
+    if (!right) b.classList.add("wrong");
+    const a = art(x);
+    $("#genFb").innerHTML = `<div class="feedback ${right?"ok":"nok"}">${right?"Richtig!":"Nicht ganz."} ${esc(a)}</div>`;
+    say(a.split(" · ")[0].replace("/"," ou "), "fr-FR");
+    $("#genNext").disabled = false; $("#genNext").focus();
+  });
+  $("#genNext").onclick = () => { gen.i++; gen.done=false; renderGenus(); };
+}
+
+/* ---------- Blatt (Erkennung + Korrekturen) ---------- */
+function renderSheet(){
+  const P = $("#p-sheet");
+  const open = FIXES.length;
+  P.innerHTML = `
+    <div class="note">
+      <b>So hat die App das Foto gelesen</b>
+      <ul>
+        <li>Foto war um 90° gedreht und wurde ausgerichtet.</li>
+        <li>Französisch- und Deutsch-Spalte wurden Zeile für Zeile zu ${CARDS.length} Paaren verbunden.</li>
+        <li>Titel, Spaltenköpfe und der Spruch unten wurden nicht als Vokabeln übernommen.</li>
+        <li>${open} Stellen sehen nach Tippfehlern auf dem Blatt aus. Du entscheidest, was gelernt wird.</li>
+      </ul>
+    </div>
+    ${Object.keys(PACKS).map(p => `
+      <div class="pack">
+        <div class="pack-h"><h3>Päckli ${p}</h3><span class="eyebrow">${PACKS[p]}</span></div>
+        ${CARDS.filter(c => c.p===p).map(c => {
+          const f = FIXES.find(x => x.card===c.id);
+          const kept = f && S.fixes[f.id]==="orig";
+          return `<div class="pair${f?" flag":""}">
+            <div>${esc(text(c,"fr"))}${c.g?`<span class="g-badge">(${c.g})</span>`:""}</div>
+            <div>${esc(text(c,"de"))}</div>
+            ${f ? `<div class="fixbox">
+              <div>Auf dem Blatt: <s>${esc(f.orig)}</s><br>Vorschlag: <ins>${esc(c[f.field])}</ins></div>
+              <div class="muted">${esc(f.why)}</div>
+              <div class="seg" role="group" aria-label="Korrektur">
+                <button data-fix="${f.id}" data-v="fix" aria-pressed="${!kept}">Korrektur lernen</button>
+                <button data-fix="${f.id}" data-v="orig" aria-pressed="${kept}">Wie auf dem Blatt</button>
+              </div></div>` : ""}
+          </div>`;
+        }).join("")}
+      </div>`).join("")}
+    <p class="muted" style="margin:0;font-size:.85rem">Fixpunkt 3 am 20.10.26 wurde vom Blatt übernommen.</p>`;
+  document.querySelectorAll("[data-fix]").forEach(b => b.onclick = () => {
+    S.fixes[b.dataset.fix] = b.dataset.v; save(); renderSheet();
+    toast(b.dataset.v==="fix" ? "Korrigierte Version wird geübt." : "Version vom Blatt wird geübt.");
+  });
+}
+
+/* ---------- Profilauswahl ---------- */
+function renderProfiles(){
+  $("#profiles").innerHTML = P.list.map(n =>
+    `<button class="chip" data-profile="${esc(n)}" aria-pressed="${n===P.current}">${esc(n)}</button>`).join("")
+    + (P.list.length ? `<button class="chip add-chip" id="addProfile" aria-label="Profil hinzufügen">+ Profil</button>` : "");
+  document.querySelectorAll("[data-profile]").forEach(b => b.onclick = () => switchProfile(b.dataset.profile));
+  const add = $("#addProfile");
+  if (add) add.onclick = () => showWelcome(true);
+}
+function showWelcome(cancelable){
+  $("#welcome").hidden = false; $("#app").hidden = true;
+  $("#cancelAdd").hidden = !cancelable;
+  $("#nameInput").value = ""; $("#nameInput").focus();
+}
+function switchProfile(name){
+  P.current = name; saveProfiles();
+  loadState();
+  sel = {packs:new Set(["3A","3B"]), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix", onlyNok:false};
+  round = null;
+  $("#welcome").hidden = true; $("#app").hidden = false;
+  $("#play").hidden = true; $("#setup").hidden = false;
+  document.querySelector('.tabs button[data-tab="cards"]').click();
+  renderProfiles(); renderFix(); renderSetup();
+}
+$("#nameForm").addEventListener("submit", e => {
+  e.preventDefault();
+  const name = $("#nameInput").value.trim().slice(0, 20);
+  if (!name){ $("#nameInput").focus(); return; }
+  if (!P.list.includes(name)) P.list.push(name);
+  switchProfile(name);
+});
+$("#cancelAdd").onclick = () => { $("#welcome").hidden = true; $("#app").hidden = false; };
+
+/* ---------- boot ---------- */
+try { speechSynthesis.getVoices(); } catch(e){}
+if (P.current && P.list.includes(P.current)) switchProfile(P.current);
+else { renderProfiles(); showWelcome(false); }
+
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", () => navigator.serviceWorker.register("/sw.js").catch(() => {}));
+}
+</script>
+</body>
 </html>
