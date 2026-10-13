@@ -135,6 +135,16 @@ header p{margin:0;color:var(--muted)}
 .fixbox s{color:var(--nok)}
 .fixbox ins{text-decoration:none;color:var(--ok);font-weight:700}
 .fixbox .seg button{font-size:.8rem}
+.write-in{width:100%;font:inherit;font-size:1.15rem;padding:12px;border:2px solid var(--line);border-radius:12px;background:var(--bg);color:var(--ink);resize:vertical;min-height:3.2em}
+.write-in:focus{border-color:var(--sage);outline:none}
+.write-in:disabled{opacity:.8}
+.yours{font-size:.9rem;color:var(--muted);overflow-wrap:anywhere}
+.yours s{color:var(--nok)}
+.score{display:flex;gap:10px;flex-wrap:wrap;font-size:.9rem}
+.score span{padding:4px 10px;border-radius:999px;font-weight:700;font-variant-numeric:tabular-nums}
+.score .s-ok{background:var(--ok-soft);color:var(--ok)}
+.score .s-nok{background:var(--nok-soft);color:var(--nok)}
+.bar-sep{height:1px;background:var(--line);margin:2px 0}
 .g-badge{font-size:.72rem;font-weight:700;color:var(--rose);margin-left:4px}
 
 .toast{position:fixed;left:50%;bottom:calc(16px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 16px;border-radius:10px;font-size:.9rem;max-width:calc(100% - 32px)}
@@ -200,6 +210,13 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
           <button data-dir="fd" aria-pressed="false"><b>Nur Französisch → Deutsch</b><small>Du siehst Französisch und sagst Deutsch</small></button>
           <button data-dir="df" aria-pressed="false"><b>Nur Deutsch → Französisch</b><small>Du siehst Deutsch und sagst Französisch</small></button>
           <button data-dir="mix" aria-pressed="true"><b>Gemischt</b><small>Beide Richtungen zufällig</small></button>
+        </div>
+      </div>
+      <div class="dir-block">
+        <span class="eyebrow" id="modeLabel">Abfrageart</span>
+        <div class="dir" id="modeSeg" role="group" aria-labelledby="modeLabel">
+          <button data-mode="flip" aria-pressed="true"><b>Aufdecken</b><small>Im Kopf übersetzen, Lösung zeigen, selbst bewerten</small></button>
+          <button data-mode="write" aria-pressed="false"><b>Schreiben</b><small>Ganze Wörter und Sätze eintippen, die App prüft</small></button>
         </div>
       </div>
       <div class="row">
@@ -282,10 +299,11 @@ try { const raw = localStorage.getItem(PKEY); if (raw) P = Object.assign(P, JSON
 function saveProfiles(){ try { localStorage.setItem(PKEY, JSON.stringify(P)); } catch(e){} }
 const stateKey = () => "kidswoertli-paeckli3-" + P.current;
 
-let S = {status:{}, fixes:{}};
+let S = {status:{}, fixes:{}, gaps:{}, genus:{}};
 function loadState(){
-  S = {status:{}, fixes:{}};
+  S = {status:{}, fixes:{}, gaps:{}, genus:{}};
   try { const raw = localStorage.getItem(stateKey()); if (raw) S = Object.assign(S, JSON.parse(raw)); } catch(e){}
+  S.gaps = S.gaps || {}; S.genus = S.genus || {};
 }
 function save(){ if (!P.current) return; try { localStorage.setItem(stateKey(), JSON.stringify(S)); } catch(e){} }
 const status = id => S.status[id] || "neu";
@@ -338,6 +356,15 @@ function renderFix(){
       <div class="bar" role="img" aria-label="${ok} gewusst, ${nok} nicht gewusst von ${cs.length}">
         <i class="b-ok" style="width:${ok/cs.length*100}%"></i><i class="b-nok" style="width:${nok/cs.length*100}%"></i></div>
       <span class="num">${ok}/${cs.length}</span></div>`;
+  }).join("") + '<div class="bar-sep"></div>' + [
+    ["Lücken", GAPS.map((_, i) => S.gaps[i])],
+    ["m / f", GENUS.map(x => S.genus[x.w])]
+  ].map(([label, res]) => {
+    const ok = res.filter(r => r==="ok").length, nok = res.filter(r => r==="nok").length, n = res.length;
+    return `<div class="bar-row"><span><b>${label}</b></span>
+      <div class="bar" role="img" aria-label="${ok} richtig, ${nok} falsch von ${n}">
+        <i class="b-ok" style="width:${ok/n*100}%"></i><i class="b-nok" style="width:${nok/n*100}%"></i></div>
+      <span class="num">${ok}/${n}</span></div>`;
   }).join("");
 
   const open = CARDS.filter(c => status(c.id) !== "ok").length;
@@ -362,8 +389,30 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 }));
 
 /* ---------- Karteikarten ---------- */
-let sel = {packs:new Set(["3A","3B"]), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix", onlyNok:false};
+const newSel = () => ({packs:new Set(["3A","3B"]), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix", mode: S.mode==="write" ? "write" : "flip", onlyNok:false});
+let sel = newSel();
 let round = null;
+
+/* Antwort beim Schreiben prüfen: Gross/Klein, Satzzeichen, «…» und Leerzeichen
+   spielen keine Rolle. Bei «a/b» zählt a, b oder beides. */
+function cleanAns(s){
+  return s.normalize("NFC").toLowerCase()
+    .replace(/[’`´]/g,"'").replace(/\.\.\.|…/g," ")
+    .replace(/[.,!?;:«»"]/g," ").replace(/\s*'\s*/g,"'")
+    .replace(/\s+/g," ").trim();
+}
+function variants(t){
+  const m = t.match(/(\S+)\/(\S+)/);
+  if (!m) return [t];
+  return [t, t.replace(m[0], m[1]), t.replace(m[0], m[2])];
+}
+const stripAcc = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"");
+function checkWritten(input, target){
+  const a = cleanAns(input), opts = variants(target).map(cleanAns);
+  if (opts.includes(a)) return "ok";
+  if (opts.map(stripAcc).includes(stripAcc(a))) return "almost";
+  return "nok";
+}
 
 function pool(){
   return CARDS.filter(c => sel.packs.has(c.p) && (!sel.onlyNok || status(c.id)==="nok"));
@@ -377,6 +426,7 @@ function renderSetup(){
   });
   $("#onlyNok").setAttribute("aria-pressed", sel.onlyNok);
   document.querySelectorAll("#dirSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.dir===sel.dir));
+  document.querySelectorAll("#modeSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode===sel.mode));
   const n = pool().length;
   const nokCount = CARDS.filter(c => status(c.id)==="nok").length;
   $("#start").disabled = n === 0;
@@ -386,6 +436,7 @@ function renderSetup(){
 }
 $("#onlyNok").onclick = () => { sel.onlyNok = !sel.onlyNok; renderSetup(); };
 document.querySelectorAll("#dirSeg button").forEach(b => b.onclick = () => { sel.dir = b.dataset.dir; S.dir = sel.dir; save(); renderSetup(); });
+document.querySelectorAll("#modeSeg button").forEach(b => b.onclick = () => { sel.mode = b.dataset.mode; S.mode = sel.mode; save(); renderSetup(); });
 
 $("#start").onclick = () => {
   const deck = [];
@@ -395,7 +446,7 @@ $("#start").onclick = () => {
   });
   shuffle(deck);
   for (let i=1;i<deck.length;i++) if (deck[i]===deck[i-1]) { const j=(i+1)%deck.length; [deck[i],deck[j]]=[deck[j],deck[i]]; }
-  round = {deck: deck.map(c => ({c, dir: sel.dir==="mix" ? (Math.random()<.5?"fd":"df") : sel.dir})), i:0, shown:false, res:{}};
+  round = {deck: deck.map(c => ({c, dir: sel.dir==="mix" ? (Math.random()<.5?"fd":"df") : sel.dir})), i:0, shown:false, res:{}, mode: sel.mode, typed:"", verdict:null};
   $("#setup").hidden = true; $("#play").hidden = false;
   renderCard();
 };
@@ -408,6 +459,7 @@ function renderCard(){
   const q = dir==="fd" ? fr : de, a = dir==="fd" ? de : fr;
   const ql = dir==="fd" ? "fr-FR" : "de-CH", al = dir==="fd" ? "de-CH" : "fr-FR";
   const st = status(c.id);
+  if (round.mode === "write") return renderWriteCard(c, dir, q, a, ql, al, st);
   P.innerHTML = `
     <div class="progress" aria-hidden="true"><i style="width:${round.i/round.deck.length*100}%"></i></div>
     <div class="card">
@@ -436,11 +488,72 @@ function renderCard(){
   }
   $("#stop").onclick = () => { round.deck = round.deck.slice(0, round.i); renderSummary(); };
 }
+function renderWriteCard(c, dir, q, a, ql, al, st){
+  const P = $("#play");
+  const v = round.verdict;
+  const fb = !v ? "" : v === "ok"
+    ? `<div class="feedback ok">Richtig!</div>`
+    : v === "almost"
+      ? `<div class="feedback warn">Fast! Achte auf die Akzente.</div>`
+      : `<div class="feedback nok">Leider nicht ganz.</div>`;
+  P.innerHTML = `
+    <div class="progress" aria-hidden="true"><i style="width:${round.i/round.deck.length*100}%"></i></div>
+    <div class="card">
+      <div class="card-head">
+        <span class="eyebrow">${dir==="fd" ? "Schreibe auf Deutsch" : "Schreibe auf Französisch"}</span>
+        <span class="tag">${c.p}${st==="nok" ? " · üben" : ""}</span>
+      </div>
+      <div class="say-line"><div class="q">${esc(q)}${c.g && dir==="fd" ? `<span class="g-badge">(${c.g})</span>` : ""}</div>${speakBtn(q, ql)}</div>
+      <textarea class="write-in" id="writeIn" rows="2" autocomplete="off" autocapitalize="off" spellcheck="false"
+        lang="${dir==="fd" ? "de" : "fr"}" aria-label="Deine Übersetzung" placeholder="${dir==="fd" ? "Auf Deutsch …" : "En français …"}" ${v ? "disabled" : ""}>${esc(round.typed)}</textarea>
+      ${v ? `${fb}
+        <div class="say-line"><div><div class="eyebrow" style="margin-bottom:2px">Lösung</div><div class="a">${esc(a)}</div></div>${speakBtn(a, al)}</div>` : ""}
+    </div>
+    ${v
+      ? `<div class="btns">${v === "ok"
+          ? `<span></span>`
+          : `<button class="btn ghost" id="override">Doch richtig</button>`}
+         <button class="btn" id="next">Weiter</button></div>`
+      : `<button class="btn" id="check">Prüfen</button>
+         ${dir==="df" ? `<div class="row" id="accents" aria-label="Sonderzeichen">${["à","â","ç","é","è","ê","ë","î","ï","ô","ù","û","œ"].map(ch => `<button class="chip" data-ch="${ch}" style="padding:6px 11px">${ch}</button>`).join("")}</div>` : ""}`}
+    <div class="row" style="justify-content:space-between">
+      <span class="num">${round.i+1} / ${round.deck.length}</span>
+      <button class="btn ghost" id="stop" style="padding:8px 14px">Runde beenden</button>
+    </div>`;
+  const inp = $("#writeIn");
+  $("#stop").onclick = () => { round.deck = round.deck.slice(0, round.i); renderSummary(); };
+  if (!v){
+    inp.addEventListener("input", () => round.typed = inp.value);
+    inp.addEventListener("keydown", e => { if (e.key === "Enter" && !e.shiftKey){ e.preventDefault(); $("#check").click(); } });
+    document.querySelectorAll("#accents [data-ch]").forEach(b => b.onclick = () => {
+      const s = inp.selectionStart ?? inp.value.length, en = inp.selectionEnd ?? s;
+      inp.value = inp.value.slice(0, s) + b.dataset.ch + inp.value.slice(en);
+      round.typed = inp.value; inp.focus(); inp.setSelectionRange(s+1, s+1);
+    });
+    $("#check").onclick = () => {
+      if (!inp.value.trim()){ inp.focus(); return; }
+      round.typed = inp.value;
+      round.verdict = checkWritten(inp.value, a);
+      record(c, round.verdict === "ok" ? "ok" : "nok");
+      renderCard();
+    };
+    inp.focus({preventScroll:true});
+  } else {
+    const ov = $("#override");
+    if (ov) ov.onclick = () => { record(c, "ok"); round.verdict = "ok"; toast("Als richtig gezählt."); next(); };
+    $("#next").onclick = next;
+    $("#next").focus();
+  }
+  function next(){ round.i++; round.typed = ""; round.verdict = null; renderCard(); }
+}
+function record(c, r){
+  round.res[c.id] = r; S.status[c.id] = r; save(); renderFix();
+}
 function answer(r){
   const {c} = round.deck[round.i];
-  round.res[c.id] = r; S.status[c.id] = r; save();
+  record(c, r);
   round.i++; round.shown = false;
-  renderFix(); renderCard();
+  renderCard();
 }
 function renderSummary(){
   const ids = Object.keys(round.res);
@@ -460,13 +573,20 @@ function renderSummary(){
   $("#again").onclick = () => { sel.onlyNok = true; renderSetup(); $("#start").click(); };
 }
 
+function scoreLine(res){
+  const ok = res.filter(r => r==="ok").length, nok = res.filter(r => r==="nok").length;
+  return `<div class="score" aria-live="polite"><span class="s-ok">${ok} richtig</span><span class="s-nok">${nok} falsch</span><span class="muted" style="padding-left:0">von ${res.length}</span></div>`;
+}
+
 /* ---------- Lücken ---------- */
 let gap = {order: shuffle([...GAPS.keys()]), i:0, done:false, tip:false};
 function renderGap(){
   const P = $("#p-gaps");
-  const g = GAPS[gap.order[gap.i % GAPS.length]];
+  const gi = gap.order[gap.i % GAPS.length];
+  const g = GAPS[gi];
   P.innerHTML = `
     <p class="muted" style="margin:0">Setze das fehlende Wort ein. Die deutsche Übersetzung hilft dir.</p>
+    ${scoreLine(GAPS.map((_, i) => S.gaps[i]))}
     <div class="card" style="min-height:0">
       <div class="card-head"><span class="eyebrow">Lückentext</span><span class="tag">${g.p}</span></div>
       <div class="gap-sentence">${esc(g.pre)}<input class="gap-input" id="gapIn" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Fehlendes Wort">${esc(g.post)}</div>
@@ -489,9 +609,12 @@ function renderGap(){
     if (!v.trim()){ inp.focus(); return; }
     const full = g.pre + g.ans + g.post;
     let fb;
-    if (norm(v) === norm(g.ans)) fb = `<div class="feedback ok">Richtig! ${esc(full)}</div>`;
+    let r = "nok";
+    if (norm(v) === norm(g.ans)) { r = "ok"; fb = `<div class="feedback ok">Richtig! ${esc(full)}</div>`; }
     else if (noAcc(v) === noAcc(g.ans)) fb = `<div class="feedback warn">Fast! Achte auf die Akzente: <b>${esc(g.ans)}</b></div>`;
     else fb = `<div class="feedback nok">Richtig wäre: <b>${esc(g.ans)}</b></div>`;
+    S.gaps[gi] = r; save(); renderFix();
+    const sc = P.querySelector(".score"); if (sc) sc.outerHTML = scoreLine(GAPS.map((_, i) => S.gaps[i]));
     $("#gapFb").innerHTML = fb + `<div class="say-line" style="margin-top:10px;align-items:center"><div class="muted">${esc(full)}</div>${speakBtn(full,"fr-FR")}</div>`;
     inp.disabled = true; gap.done = true;
     $("#gapCheck").textContent = "Weiter"; $("#gapCheck").focus();
@@ -511,6 +634,7 @@ function renderGenus(){
   const P = $("#p-genus");
   const x = GENUS[gen.order[gen.i % GENUS.length]];
   P.innerHTML = `
+    ${scoreLine(GENUS.map(y => S.genus[y.w]))}
     <p class="muted" style="margin:0">Männlich oder weiblich? Auf dem Blatt stehen (m) und (f) bei einigen Wörtern, die übrigen Nomen stammen aus den Sätzen.</p>
     <div class="card" style="min-height:0">
       <div class="card-head"><span class="eyebrow">Genus</span><span class="tag">${x.src}</span></div>
@@ -530,6 +654,8 @@ function renderGenus(){
     if (gen.done) return;
     gen.done = true;
     const right = b.dataset.g === x.g;
+    S.genus[x.w] = right ? "ok" : "nok"; save(); renderFix();
+    const sc = P.querySelector(".score"); if (sc) sc.outerHTML = scoreLine(GENUS.map(y => S.genus[y.w]));
     document.querySelectorAll("#genBtns button").forEach(o => { if (o.dataset.g===x.g) o.classList.add("right"); });
     if (!right) b.classList.add("wrong");
     const a = art(x);
@@ -597,7 +723,7 @@ function showWelcome(cancelable){
 function switchProfile(name){
   P.current = name; saveProfiles();
   loadState();
-  sel = {packs:new Set(["3A","3B"]), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix", onlyNok:false};
+  sel = newSel();
   round = null;
   $("#welcome").hidden = true; $("#app").hidden = false;
   $("#play").hidden = true; $("#setup").hidden = false;

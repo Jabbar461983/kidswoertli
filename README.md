@@ -2,11 +2,11 @@
 
 Lern-App für den Französisch-Klassenwortschatz (aktuell Päckli 3A, KW 37, und 3B, KW 38).
 
-- **Karten:** Abfragerichtung nur Französisch → Deutsch, nur Deutsch → Französisch oder gemischt. Bewertung mit «Gewusst / Nicht gewusst». Nicht gewusste Karten lassen sich gezielt üben und kommen etwa 1,5-mal so oft dran.
+- **Karten:** Abfragerichtung nur Französisch → Deutsch, nur Deutsch → Französisch oder gemischt. Abfrageart «Aufdecken» (selbst bewerten mit «Gewusst / Nicht gewusst») oder «Schreiben» (ganze Wörter und Sätze eintippen, die App prüft; Gross/Klein und Satzzeichen zählen nicht, bei Akzentfehlern gibt es einen Hinweis). Nicht gewusste Karten lassen sich gezielt üben und kommen etwa 1,5-mal so oft dran.
 - **Lücken:** Lückentext mit Tipp und Akzent-Hinweis.
 - **m / f:** Genus-Quiz.
 - **Blatt:** erkannte Wortpaare mit markierten Tippfehlern vom Blatt; wählbar, ob die Korrektur oder die Version vom Blatt geübt wird.
-- Countdown zum Fixpunkt mit Tagesziel.
+- Countdown zum Fixpunkt mit Tagesziel; Fortschritt für Karten, Lücken und m/f.
 - Mehrere Profile pro Gerät; der Lernstand bleibt im Browser des Geräts gespeichert.
 - Vorlesen über die Sprachausgabe des Geräts.
 - Installierbar als App (Teilen → «Zum Home-Bildschirm»), funktioniert auch offline.
