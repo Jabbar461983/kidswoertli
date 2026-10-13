@@ -1,9 +1,10 @@
 # Statische App ohne Build-Schritt: Netlify veröffentlicht den Ordner so, wie er ist.
-# Der Befehl muss hier stehen (nicht leer), sonst nimmt Netlify den alten
-# Build-Befehl aus den Projekt-Einstellungen.
+# Kein echter Build: die App-Dateien werden nur in den Ordner "dist" kopiert,
+# den Netlify veröffentlicht. (Ein leerer Befehl würde ignoriert und der alte
+# "npm run build" aus den Projekt-Einstellungen liefe.)
 [build]
-  publish = "."
-  command = "echo 'Kein Build nötig: statische App'"
+  publish = "dist"
+  command = "rm -rf dist && mkdir dist && cp -r index.html sw.js manifest.webmanifest icons dist/"
 
 [[headers]]
   for = "/sw.js"
