@@ -77,6 +77,9 @@ header p{margin:0;color:var(--muted)}
 .seg button{border:0;background:var(--surface);padding:7px 10px;font-size:.85rem;font-weight:700;color:var(--muted)}
 .seg button+button{border-left:1.5px solid var(--line)}
 .seg button[aria-pressed="true"]{background:var(--sage-soft);color:var(--ink)}
+.fp-seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));width:100%}
+.fp-seg button{padding:9px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2}
+.fp-seg small{font-weight:400}
 .dir-block{display:flex;flex-direction:column;gap:6px}
 .dir{display:flex;flex-direction:column;gap:6px}
 .dir button{display:flex;flex-direction:column;align-items:flex-start;gap:1px;text-align:left;border:1.5px solid var(--line);background:var(--surface);border-radius:12px;padding:10px 14px}
@@ -165,7 +168,7 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
 <div class="wrap">
   <header>
     <span class="eyebrow">KidsWörtli · Französisch</span>
-    <h1>Päckli 3A &amp; 3B</h1>
+    <h1 id="title">Päckli</h1>
     <div class="profiles" id="profiles" aria-label="Wer übt?"></div>
   </header>
 
@@ -180,12 +183,13 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
   </section>
 
   <div id="app" class="panel" style="gap:18px">
+  <div class="seg fp-seg" id="fpSeg" role="group" aria-label="Fixpunkt wählen"></div>
   <section class="fix" aria-labelledby="fixh">
     <div class="fix-top">
       <span class="days" id="days">–</span>
       <div>
-        <h2 id="fixh">Tage bis Fixpunkt 3</h2>
-        <span class="muted" id="fixdate">Dienstag, 20.10.2026</span>
+        <h2 id="fixh">Tage bis Fixpunkt</h2>
+        <span class="muted" id="fixdate"></span>
       </div>
     </div>
     <div class="steps" id="steps" aria-hidden="true"></div>
@@ -243,8 +247,19 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
 <div class="toast" id="toast" hidden></div>
 
 <script>
-const FIXPUNKT = new Date(2026, 9, 20);
-const PACKS = {"3A":"KW 37","3B":"KW 38"};
+/* Jeder Fixpunkt fasst zwei Päckli zusammen. Neue Päckli: hier einen Fixpunkt
+   ergänzen und unten Karten, Lücken und Genus-Wörter mit dem Päckli-Kürzel. */
+const FIXPUNKTE = [
+  {id:"fp3", name:"Fixpunkt 3", date:new Date(2026, 9, 20), packs:["3A","3B"],
+   sheet:["Foto war um 90° gedreht und wurde ausgerichtet.",
+          "Titel, Spaltenköpfe und der Spruch unten wurden nicht als Vokabeln übernommen.",
+          "3 Stellen sehen nach Tippfehlern auf dem Blatt aus. Du entscheidest, was gelernt wird."]},
+  {id:"fp4", name:"Fixpunkt 4", date:new Date(2026, 10, 3), packs:["4A","4B"],
+   sheet:["Foto war um 90° gedreht und wurde ausgerichtet.",
+          "Titel, Spaltenköpfe und der Spruch unten wurden nicht als Vokabeln übernommen.",
+          "Keine Tippfehler auf dem Blatt gefunden."]}
+];
+const PACKS = {"3A":"KW 37","3B":"KW 38","4A":"KW 43","4B":"KW 44"};
 
 const CARDS = [
   {id:"a1",p:"3A",fr:"Ça dure…",de:"Es dauert…"},
@@ -260,7 +275,30 @@ const CARDS = [
   {id:"b3",p:"3B",fr:"On peut voir un spectacle.",de:"Man kann eine Vorstellung sehen."},
   {id:"b4",p:"3B",fr:"Je trouve ça magnifique.",de:"Ich finde das wunderschön."},
   {id:"b5",p:"3B",fr:"extraordinaire",de:"aussergewöhnlich"},
-  {id:"b6",p:"3B",fr:"impressionnant",de:"beeindruckend"}
+  {id:"b6",p:"3B",fr:"impressionnant",de:"beeindruckend"},
+
+  {id:"c1",p:"4A",fr:"Il s'agit d'…",de:"Es handelt sich um…"},
+  {id:"c2",p:"4A",fr:"Il s'agit d'un spectacle.",de:"Es handelt sich um eine Vorstellung."},
+  {id:"c3",p:"4A",fr:"une fête",de:"ein Fest"},
+  {id:"c4",p:"4A",fr:"une exposition",de:"eine Ausstellung"},
+  {id:"c5",p:"4A",fr:"un événement",de:"eine Veranstaltung"},
+  {id:"c6",p:"4A",fr:"une curiosité",de:"eine Sehenswürdigkeit"},
+  {id:"c7",p:"4A",fr:"…a lieu…",de:"…findet statt…"},
+  {id:"c8",p:"4A",fr:"L'événement a lieu en hiver.",de:"Die Veranstaltung findet im Winter statt."},
+  {id:"c9",p:"4A",fr:"au printemps",de:"im Frühling",g:"m"},
+  {id:"c10",p:"4A",fr:"en été",de:"im Sommer",g:"m"},
+
+  {id:"d1",p:"4B",fr:"…se trouve…",de:"…befindet sich…"},
+  {id:"d2",p:"4B",fr:"près de…",de:"in der Nähe von…"},
+  {id:"d3",p:"4B",fr:"Versoix se trouve près de Genève.",de:"Versoix befindet sich in der Nähe von Genf."},
+  {id:"d4",p:"4B",fr:"en Suisse",de:"in der Schweiz"},
+  {id:"d5",p:"4B",fr:"en France",de:"in Frankreich"},
+  {id:"d6",p:"4B",fr:"au bord du lac",de:"am Ufer des Sees"},
+  {id:"d7",p:"4B",fr:"au bord de la rivière",de:"am Ufer des Flusses"},
+  {id:"d8",p:"4B",fr:"septembre",de:"September"},
+  {id:"d9",p:"4B",fr:"octobre",de:"Oktober"},
+  {id:"d10",p:"4B",fr:"novembre",de:"November"},
+  {id:"d11",p:"4B",fr:"décembre",de:"Dezember"}
 ];
 
 const FIXES = [
@@ -278,19 +316,57 @@ const GAPS = [
   {p:"3B",pre:"On ",ans:"peut",post:" voir un spectacle.",hint:"Man kann eine Vorstellung sehen."},
   {p:"3B",pre:"On peut voir un ",ans:"spectacle",post:".",hint:"Man kann eine Vorstellung sehen."},
   {p:"3B",pre:"Je ",ans:"trouve",post:" ça magnifique.",hint:"Ich finde das wunderschön."},
-  {p:"3B",pre:"Je trouve ça ",ans:"impressionnant",post:".",hint:"Ich finde das beeindruckend."}
+  {p:"3B",pre:"Je trouve ça ",ans:"impressionnant",post:".",hint:"Ich finde das beeindruckend."},
+
+  {p:"4A",pre:"Il s'",ans:"agit",post:" d'un spectacle.",hint:"Es handelt sich um eine Vorstellung."},
+  {p:"4A",pre:"Il s'agit d'un ",ans:"spectacle",post:".",hint:"Es handelt sich um eine Vorstellung."},
+  {p:"4A",pre:"L'événement a ",ans:"lieu",post:" en hiver.",hint:"Die Veranstaltung findet im Winter statt."},
+  {p:"4A",pre:"L'événement a lieu en ",ans:"hiver",post:".",hint:"Die Veranstaltung findet im Winter statt."},
+  {p:"4A",pre:"L'",ans:"événement",post:" a lieu en hiver.",hint:"Die Veranstaltung findet im Winter statt."},
+  {p:"4A",pre:"au ",ans:"printemps",post:"",hint:"im Frühling"},
+  {p:"4A",pre:"en ",ans:"été",post:"",hint:"im Sommer"},
+  {p:"4B",pre:"Versoix se ",ans:"trouve",post:" près de Genève.",hint:"Versoix befindet sich in der Nähe von Genf."},
+  {p:"4B",pre:"Versoix se trouve ",ans:"près",post:" de Genève.",hint:"Versoix befindet sich in der Nähe von Genf."},
+  {p:"4B",pre:"Versoix se trouve près de ",ans:"Genève",post:".",hint:"Versoix befindet sich in der Nähe von Genf."},
+  {p:"4B",pre:"au ",ans:"bord",post:" du lac",hint:"am Ufer des Sees"},
+  {p:"4B",pre:"au bord du ",ans:"lac",post:"",hint:"am Ufer des Sees"},
+  {p:"4B",pre:"au bord de la ",ans:"rivière",post:"",hint:"am Ufer des Flusses"},
+  {p:"4B",pre:"en ",ans:"Suisse",post:"",hint:"in der Schweiz"}
 ];
 
 const GENUS = [
-  {w:"garçon",de:"Junge",g:"m",src:"Blatt"},
-  {w:"fille",de:"Mädchen",g:"f",src:"Blatt"},
-  {w:"enfant",de:"Kind",g:"m/f",src:"Blatt"},
-  {w:"personne",de:"Person",g:"f",src:"aus den Sätzen"},
-  {w:"cheval",de:"Pferd",g:"m",src:"aus den Sätzen"},
-  {w:"spectacle",de:"Vorstellung",g:"m",src:"aus den Sätzen"},
-  {w:"minute",de:"Minute",g:"f",src:"aus den Sätzen"},
-  {w:"seconde",de:"Sekunde",g:"f",src:"aus den Sätzen"}
+  {p:"3A",w:"garçon",de:"Junge",g:"m",src:"Blatt"},
+  {p:"3A",w:"fille",de:"Mädchen",g:"f",src:"Blatt"},
+  {p:"3A",w:"enfant",de:"Kind",g:"m/f",src:"Blatt"},
+  {p:"3A",w:"personne",de:"Person",g:"f",src:"aus den Sätzen"},
+  {p:"3A",w:"cheval",de:"Pferd",g:"m",src:"aus den Sätzen"},
+  {p:"3B",w:"spectacle",de:"Vorstellung",g:"m",src:"aus den Sätzen"},
+  {p:"3A",w:"minute",de:"Minute",g:"f",src:"aus den Sätzen"},
+  {p:"3A",w:"seconde",de:"Sekunde",g:"f",src:"aus den Sätzen"},
+
+  {p:"4A",w:"fête",de:"Fest",g:"f",src:"Blatt"},
+  {p:"4A",w:"exposition",de:"Ausstellung",g:"f",src:"Blatt"},
+  {p:"4A",w:"événement",de:"Veranstaltung",g:"m",src:"Blatt"},
+  {p:"4A",w:"curiosité",de:"Sehenswürdigkeit",g:"f",src:"Blatt"},
+  {p:"4A",w:"printemps",de:"Frühling",g:"m",src:"Blatt"},
+  {p:"4A",w:"été",de:"Sommer",g:"m",src:"Blatt"},
+  {p:"4A",w:"hiver",de:"Winter",g:"m",src:"aus den Sätzen"},
+  {p:"4B",w:"lac",de:"See",g:"m",src:"aus den Sätzen"},
+  {p:"4B",w:"rivière",de:"Fluss",g:"f",src:"aus den Sätzen"},
+  {p:"4B",w:"bord",de:"Ufer",g:"m",src:"aus den Sätzen"},
+  {p:"4B",w:"Suisse",de:"Schweiz",g:"f",src:"aus den Sätzen"},
+  {p:"4B",w:"France",de:"Frankreich",g:"f",src:"aus den Sätzen"}
 ];
+
+/* Aktiver Fixpunkt: gewählt oder der nächste anstehende */
+let FP = FIXPUNKTE[0];
+function defaultFp(){
+  const today = new Date(); today.setHours(0,0,0,0);
+  return FIXPUNKTE.find(f => f.date >= today) || FIXPUNKTE[FIXPUNKTE.length-1];
+}
+const inFp = x => FP.packs.includes(x.p);
+const fpGapIdx = () => GAPS.map((g, i) => inFp(g) ? i : -1).filter(i => i >= 0);
+const fpGenusIdx = () => GENUS.map((g, i) => inFp(g) ? i : -1).filter(i => i >= 0);
 
 /* ---------- Profile & state ---------- */
 const PKEY = "kidswoertli-profiles";
@@ -342,13 +418,17 @@ const noAcc = s => norm(s).normalize("NFD").replace(/[̀-ͯ]/g,"");
 /* ---------- Fixpunkt ---------- */
 function renderFix(){
   const today = new Date(); today.setHours(0,0,0,0);
-  const days = Math.round((FIXPUNKT - today) / 864e5);
+  const days = Math.round((FP.date - today) / 864e5);
   $("#days").textContent = days >= 0 ? days : "0";
-  $("#fixh").textContent = days > 0 ? (days === 1 ? "Tag bis Fixpunkt 3" : "Tage bis Fixpunkt 3") : (days === 0 ? "Heute ist Fixpunkt 3" : "Fixpunkt 3 ist vorbei");
+  $("#fixh").textContent = days > 0 ? (days === 1 ? `Tag bis ${FP.name}` : `Tage bis ${FP.name}`) : (days === 0 ? `Heute ist ${FP.name}` : `${FP.name} ist vorbei`);
+  $("#fixdate").textContent = FP.date.toLocaleDateString("de-CH", {weekday:"long", day:"2-digit", month:"2-digit", year:"numeric"});
+  $("#title").innerHTML = "Päckli " + FP.packs.map(esc).join(" &amp; ");
+  $("#fpSeg").innerHTML = FIXPUNKTE.map(f => `<button data-fp="${f.id}" aria-pressed="${f===FP}"><b>${esc(f.name)}</b><small>${f.packs.join(" · ")} · ${f.date.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit"})}</small></button>`).join("");
+  document.querySelectorAll("[data-fp]").forEach(b => b.onclick = () => setFp(b.dataset.fp));
   const n = Math.max(0, Math.min(days, 40));
   $("#steps").innerHTML = Array.from({length:n}, (_,i) => `<span class="${i===n-1?'goal':''}"></span>`).join("");
 
-  $("#bars").innerHTML = Object.keys(PACKS).map(p => {
+  $("#bars").innerHTML = FP.packs.map(p => {
     const cs = CARDS.filter(c => c.p === p);
     const ok = cs.filter(c => status(c.id)==="ok").length;
     const nok = cs.filter(c => status(c.id)==="nok").length;
@@ -357,8 +437,8 @@ function renderFix(){
         <i class="b-ok" style="width:${ok/cs.length*100}%"></i><i class="b-nok" style="width:${nok/cs.length*100}%"></i></div>
       <span class="num">${ok}/${cs.length}</span></div>`;
   }).join("") + '<div class="bar-sep"></div>' + [
-    ["Lücken", GAPS.map((_, i) => S.gaps[i])],
-    ["m / f", GENUS.map(x => S.genus[x.w])]
+    ["Lücken", fpGapIdx().map(i => S.gaps[i])],
+    ["m / f", GENUS.filter(inFp).map(x => S.genus[x.w])]
   ].map(([label, res]) => {
     const ok = res.filter(r => r==="ok").length, nok = res.filter(r => r==="nok").length, n = res.length;
     return `<div class="bar-row"><span><b>${label}</b></span>
@@ -367,8 +447,9 @@ function renderFix(){
       <span class="num">${ok}/${n}</span></div>`;
   }).join("");
 
-  const open = CARDS.filter(c => status(c.id) !== "ok").length;
-  const nok = CARDS.filter(c => status(c.id) === "nok").length;
+  const fpCards = CARDS.filter(inFp);
+  const open = fpCards.filter(c => status(c.id) !== "ok").length;
+  const nok = fpCards.filter(c => status(c.id) === "nok").length;
   let plan;
   if (open === 0) plan = "Alle Karten sitzen. Bis zum Fixpunkt reicht eine kurze Runde alle zwei Tage zum Wiederholen.";
   else if (days <= 0) plan = `Noch ${open} Karten offen. Heute nochmals alle durchgehen.`;
@@ -389,7 +470,7 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 }));
 
 /* ---------- Karteikarten ---------- */
-const newSel = () => ({packs:new Set(["3A","3B"]), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix", mode: S.mode==="write" ? "write" : "flip", onlyNok:false});
+const newSel = () => ({packs:new Set(FP.packs), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix", mode: S.mode==="write" ? "write" : "flip", onlyNok:false});
 let sel = newSel();
 let round = null;
 
@@ -418,7 +499,7 @@ function pool(){
   return CARDS.filter(c => sel.packs.has(c.p) && (!sel.onlyNok || status(c.id)==="nok"));
 }
 function renderSetup(){
-  $("#packChips").innerHTML = Object.keys(PACKS).map(p =>
+  $("#packChips").innerHTML = FP.packs.map(p =>
     `<button class="chip" data-pack="${p}" aria-pressed="${sel.packs.has(p)}">Päckli ${p} · ${PACKS[p]}</button>`).join("");
   document.querySelectorAll("[data-pack]").forEach(b => b.onclick = () => {
     sel.packs.has(b.dataset.pack) ? sel.packs.delete(b.dataset.pack) : sel.packs.add(b.dataset.pack);
@@ -428,7 +509,7 @@ function renderSetup(){
   document.querySelectorAll("#dirSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.dir===sel.dir));
   document.querySelectorAll("#modeSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode===sel.mode));
   const n = pool().length;
-  const nokCount = CARDS.filter(c => status(c.id)==="nok").length;
+  const nokCount = CARDS.filter(c => inFp(c) && status(c.id)==="nok").length;
   $("#start").disabled = n === 0;
   $("#setupInfo").textContent = n === 0
     ? (sel.onlyNok ? "Keine nicht gewussten Karten in dieser Auswahl. Super!" : "Wähle mindestens ein Päckli.")
@@ -578,15 +659,44 @@ function scoreLine(res){
   return `<div class="score" aria-live="polite"><span class="s-ok">${ok} richtig</span><span class="s-nok">${nok} falsch</span><span class="muted" style="padding-left:0">von ${res.length}</span></div>`;
 }
 
+/* Abschluss einer Lücken- oder m/f-Runde */
+function roundSummary(box, res, label, onAll, onWrong){
+  const keys = Object.keys(res);
+  const ok = keys.filter(k => res[k]==="ok").length, nok = keys.length - ok;
+  const msg = nok === 0 ? "Alles richtig, super!" : ok >= nok ? "Gut gemacht!" : "Weiter üben, das kommt!";
+  box.innerHTML = `
+    <h2>Runde fertig</h2>
+    <p class="muted" style="margin:0">${msg}</p>
+    <div class="summary">
+      <div class="stat"><b>${ok}</b>richtig</div>
+      <div class="stat n"><b>${nok}</b>falsch</div>
+    </div>
+    ${nok ? `<div class="empty" style="border-style:solid">${keys.filter(k => res[k]==="nok").map(label).join("")}</div>` : ""}
+    <div class="btns">
+      <button class="btn ghost" id="rAll">Neue Runde</button>
+      <button class="btn" id="rWrong" ${nok ? "" : "disabled"}>Falsche nochmals</button>
+    </div>`;
+  box.querySelector("#rAll").onclick = onAll;
+  box.querySelector("#rWrong").onclick = () => onWrong(keys.filter(k => res[k]==="nok"));
+  box.querySelector(nok ? "#rWrong" : "#rAll").focus();
+}
+
 /* ---------- Lücken ---------- */
-let gap = {order: shuffle([...GAPS.keys()]), i:0, done:false, tip:false};
+const newGapRound = (idx = fpGapIdx()) => ({order: shuffle([...idx]), i:0, done:false, res:{}});
+let gap = newGapRound();
 function renderGap(){
   const P = $("#p-gaps");
-  const gi = gap.order[gap.i % GAPS.length];
+  if (gap.i >= gap.order.length){
+    return roundSummary(P, gap.res,
+      k => { const g = GAPS[k]; return `<div>${esc(g.pre)}<b>${esc(g.ans)}</b>${esc(g.post)}</div>`; },
+      () => { gap = newGapRound(); renderGap(); },
+      wrong => { gap = newGapRound(wrong.map(Number)); renderGap(); });
+  }
+  const gi = gap.order[gap.i];
   const g = GAPS[gi];
   P.innerHTML = `
     <p class="muted" style="margin:0">Setze das fehlende Wort ein. Die deutsche Übersetzung hilft dir.</p>
-    ${scoreLine(GAPS.map((_, i) => S.gaps[i]))}
+    ${scoreLine(fpGapIdx().map(i => S.gaps[i]))}
     <div class="card" style="min-height:0">
       <div class="card-head"><span class="eyebrow">Lückentext</span><span class="tag">${g.p}</span></div>
       <div class="gap-sentence">${esc(g.pre)}<input class="gap-input" id="gapIn" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Fehlendes Wort">${esc(g.post)}</div>
@@ -597,7 +707,7 @@ function renderGap(){
       <button class="btn ghost" id="gapTip">Tipp</button>
       <button class="btn" id="gapCheck">Prüfen</button>
     </div>
-    <span class="num">${gap.i % GAPS.length + 1} / ${GAPS.length}</span>`;
+    <span class="num">${gap.i + 1} / ${gap.order.length}${gap.order.length < fpGapIdx().length ? " · nur falsche" : ""}</span>`;
   const inp = $("#gapIn");
   inp.addEventListener("keydown", e => { if (e.key==="Enter") $("#gapCheck").click(); });
   $("#gapTip").onclick = () => {
@@ -613,17 +723,18 @@ function renderGap(){
     if (norm(v) === norm(g.ans)) { r = "ok"; fb = `<div class="feedback ok">Richtig! ${esc(full)}</div>`; }
     else if (noAcc(v) === noAcc(g.ans)) fb = `<div class="feedback warn">Fast! Achte auf die Akzente: <b>${esc(g.ans)}</b></div>`;
     else fb = `<div class="feedback nok">Richtig wäre: <b>${esc(g.ans)}</b></div>`;
-    S.gaps[gi] = r; save(); renderFix();
-    const sc = P.querySelector(".score"); if (sc) sc.outerHTML = scoreLine(GAPS.map((_, i) => S.gaps[i]));
+    S.gaps[gi] = r; gap.res[gi] = r; save(); renderFix();
+    const sc = P.querySelector(".score"); if (sc) sc.outerHTML = scoreLine(fpGapIdx().map(i => S.gaps[i]));
     $("#gapFb").innerHTML = fb + `<div class="say-line" style="margin-top:10px;align-items:center"><div class="muted">${esc(full)}</div>${speakBtn(full,"fr-FR")}</div>`;
     inp.disabled = true; gap.done = true;
-    $("#gapCheck").textContent = "Weiter"; $("#gapCheck").focus();
+    $("#gapCheck").textContent = gap.i + 1 >= gap.order.length ? "Auswertung" : "Weiter"; $("#gapCheck").focus();
   };
   inp.focus({preventScroll:true});
 }
 
 /* ---------- Genus ---------- */
-let gen = {order: shuffle([...GENUS.keys()]), i:0, done:false};
+const newGenRound = (idx = fpGenusIdx()) => ({order: shuffle([...idx]), i:0, done:false, res:{}});
+let gen = newGenRound();
 function art(x){
   const vowel = /^[aeiouh]/.test(x.w);
   if (x.g==="m/f") return `${vowel?"l'":"le/la "}${x.w} · un/une ${x.w}`;
@@ -632,9 +743,15 @@ function art(x){
 }
 function renderGenus(){
   const P = $("#p-genus");
-  const x = GENUS[gen.order[gen.i % GENUS.length]];
+  if (gen.i >= gen.order.length){
+    return roundSummary(P, gen.res,
+      k => { const y = GENUS.find(z => z.w === k); return `<div><b>${esc(art(y).split(" · ")[0])}</b> – ${esc(y.de)}</div>`; },
+      () => { gen = newGenRound(); renderGenus(); },
+      wrong => { gen = newGenRound(wrong.map(w => GENUS.findIndex(z => z.w === w))); renderGenus(); });
+  }
+  const x = GENUS[gen.order[gen.i]];
   P.innerHTML = `
-    ${scoreLine(GENUS.map(y => S.genus[y.w]))}
+    ${scoreLine(GENUS.filter(inFp).map(y => S.genus[y.w]))}
     <p class="muted" style="margin:0">Männlich oder weiblich? Auf dem Blatt stehen (m) und (f) bei einigen Wörtern, die übrigen Nomen stammen aus den Sätzen.</p>
     <div class="card" style="min-height:0">
       <div class="card-head"><span class="eyebrow">Genus</span><span class="tag">${x.src}</span></div>
@@ -647,20 +764,21 @@ function renderGenus(){
       <button data-g="m/f">beides<small>le/la</small></button>
     </div>
     <div class="row" style="justify-content:space-between">
-      <span class="num">${gen.i % GENUS.length + 1} / ${GENUS.length}</span>
+      <span class="num">${gen.i + 1} / ${gen.order.length}${gen.order.length < fpGenusIdx().length ? " · nur falsche" : ""}</span>
       <button class="btn" id="genNext" disabled style="padding:8px 16px">Weiter</button>
     </div>`;
   document.querySelectorAll("#genBtns button").forEach(b => b.onclick = () => {
     if (gen.done) return;
     gen.done = true;
     const right = b.dataset.g === x.g;
-    S.genus[x.w] = right ? "ok" : "nok"; save(); renderFix();
-    const sc = P.querySelector(".score"); if (sc) sc.outerHTML = scoreLine(GENUS.map(y => S.genus[y.w]));
+    S.genus[x.w] = right ? "ok" : "nok"; gen.res[x.w] = S.genus[x.w]; save(); renderFix();
+    const sc = P.querySelector(".score"); if (sc) sc.outerHTML = scoreLine(GENUS.filter(inFp).map(y => S.genus[y.w]));
     document.querySelectorAll("#genBtns button").forEach(o => { if (o.dataset.g===x.g) o.classList.add("right"); });
     if (!right) b.classList.add("wrong");
     const a = art(x);
     $("#genFb").innerHTML = `<div class="feedback ${right?"ok":"nok"}">${right?"Richtig!":"Nicht ganz."} ${esc(a)}</div>`;
     say(a.split(" · ")[0].replace("/"," ou "), "fr-FR");
+    if (gen.i + 1 >= gen.order.length) $("#genNext").textContent = "Auswertung";
     $("#genNext").disabled = false; $("#genNext").focus();
   });
   $("#genNext").onclick = () => { gen.i++; gen.done=false; renderGenus(); };
@@ -669,18 +787,16 @@ function renderGenus(){
 /* ---------- Blatt (Erkennung + Korrekturen) ---------- */
 function renderSheet(){
   const P = $("#p-sheet");
-  const open = FIXES.length;
+  const n = CARDS.filter(inFp).length;
   P.innerHTML = `
     <div class="note">
       <b>So hat die App das Foto gelesen</b>
       <ul>
-        <li>Foto war um 90° gedreht und wurde ausgerichtet.</li>
-        <li>Französisch- und Deutsch-Spalte wurden Zeile für Zeile zu ${CARDS.length} Paaren verbunden.</li>
-        <li>Titel, Spaltenköpfe und der Spruch unten wurden nicht als Vokabeln übernommen.</li>
-        <li>${open} Stellen sehen nach Tippfehlern auf dem Blatt aus. Du entscheidest, was gelernt wird.</li>
+        <li>Französisch- und Deutsch-Spalte wurden Zeile für Zeile zu ${n} Paaren verbunden.</li>
+        ${FP.sheet.map(t => `<li>${esc(t)}</li>`).join("")}
       </ul>
     </div>
-    ${Object.keys(PACKS).map(p => `
+    ${FP.packs.map(p => `
       <div class="pack">
         <div class="pack-h"><h3>Päckli ${p}</h3><span class="eyebrow">${PACKS[p]}</span></div>
         ${CARDS.filter(c => c.p===p).map(c => {
@@ -699,7 +815,7 @@ function renderSheet(){
           </div>`;
         }).join("")}
       </div>`).join("")}
-    <p class="muted" style="margin:0;font-size:.85rem">Fixpunkt 3 am 20.10.26 wurde vom Blatt übernommen.</p>`;
+    <p class="muted" style="margin:0;font-size:.85rem">${esc(FP.name)} am ${FP.date.toLocaleDateString("de-CH")} wurde vom Blatt übernommen.</p>`;
   document.querySelectorAll("[data-fix]").forEach(b => b.onclick = () => {
     S.fixes[b.dataset.fix] = b.dataset.v; save(); renderSheet();
     toast(b.dataset.v==="fix" ? "Korrigierte Version wird geübt." : "Version vom Blatt wird geübt.");
@@ -723,12 +839,23 @@ function showWelcome(cancelable){
 function switchProfile(name){
   P.current = name; saveProfiles();
   loadState();
+  FP = FIXPUNKTE.find(f => f.id === S.fp) || defaultFp();
+  if (S.fp && FP !== defaultFp() && FP.date < defaultFp().date) FP = defaultFp(); // vergangener Fixpunkt -> nächster
   sel = newSel();
-  round = null;
+  round = null; gap = newGapRound(); gen = newGenRound();
   $("#welcome").hidden = true; $("#app").hidden = false;
   $("#play").hidden = true; $("#setup").hidden = false;
   document.querySelector('.tabs button[data-tab="cards"]').click();
   renderProfiles(); renderFix(); renderSetup();
+}
+function setFp(id){
+  FP = FIXPUNKTE.find(f => f.id === id) || defaultFp();
+  S.fp = FP.id; save();
+  sel = newSel(); round = null; gap = newGapRound(); gen = newGenRound();
+  $("#play").hidden = true; $("#setup").hidden = false;
+  const active = document.querySelector('.tabs button[aria-selected="true"]');
+  (active || document.querySelector('.tabs button[data-tab="cards"]')).click();
+  renderFix(); renderSetup();
 }
 $("#nameForm").addEventListener("submit", e => {
   e.preventDefault();

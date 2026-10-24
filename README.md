@@ -1,6 +1,6 @@
 # KidsWörtli
 
-Lern-App für den Französisch-Klassenwortschatz (aktuell Päckli 3A, KW 37, und 3B, KW 38).
+Lern-App für den Französisch-Klassenwortschatz: Päckli 3A/3B (Fixpunkt 3, 20.10.2026) und 4A/4B (Fixpunkt 4, 03.11.2026). Oben wählt man den Fixpunkt; standardmässig ist der nächste anstehende aktiv.
 
 - **Karten:** Abfragerichtung nur Französisch → Deutsch, nur Deutsch → Französisch oder gemischt. Abfrageart «Aufdecken» (selbst bewerten mit «Gewusst / Nicht gewusst») oder «Schreiben» (ganze Wörter und Sätze eintippen, die App prüft; Gross/Klein und Satzzeichen zählen nicht, bei Akzentfehlern gibt es einen Hinweis). Nicht gewusste Karten lassen sich gezielt üben und kommen etwa 1,5-mal so oft dran.
 - **Lücken:** Lückentext mit Tipp und Akzent-Hinweis.
@@ -25,4 +25,4 @@ Eine einzige Seite ohne Build-Schritt und ohne Datenbank:
 
 ## Neue Päckli eintragen
 
-In `index.html` die Listen `PACKS`, `CARDS`, `GAPS`, `GENUS` und das Datum `FIXPUNKT` anpassen. Danach in `sw.js` die `VERSION` erhöhen (z. B. `kidswoertli-v2`), damit installierte Apps die neue Version laden.
+In `index.html` unter `FIXPUNKTE` einen Eintrag ergänzen, in `PACKS` die Kalenderwochen eintragen und in `CARDS`, `GAPS` und `GENUS` die neuen Einträge mit dem Päckli-Kürzel (z. B. `p:"5A"`) hinzufügen. Danach in `sw.js` die `VERSION` erhöhen (z. B. `kidswoertli-v2`), damit installierte Apps die neue Version laden.
