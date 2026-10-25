@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#4c7a60">
-<meta name="description" content="KidsWörtli – Französisch-Klassenwortschatz üben">
+<meta name="description" content="KidsWörtli – Französisch- und Englisch-Wortschatz üben">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="KidsWörtli">
 <meta name="apple-mobile-web-app-status-bar-style" content="default">
@@ -65,7 +65,7 @@ header p{margin:0;color:var(--muted)}
 .plan{margin:0;font-size:.95rem}
 
 /* Tabs */
-.tabs{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;background:var(--sage-soft);padding:4px;border-radius:12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
+.tabs{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);gap:4px;background:var(--sage-soft);padding:4px;border-radius:12px;position:sticky;top:env(safe-area-inset-top,0px);z-index:5}
 .tabs button{border:0;background:transparent;padding:9px 4px;border-radius:9px;font-weight:700;font-size:.9rem;color:var(--muted)}
 .tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);box-shadow:0 1px 2px rgba(0,0,0,.08)}
 
@@ -77,7 +77,14 @@ header p{margin:0;color:var(--muted)}
 .seg button{border:0;background:var(--surface);padding:7px 10px;font-size:.85rem;font-weight:700;color:var(--muted)}
 .seg button+button{border-left:1.5px solid var(--line)}
 .seg button[aria-pressed="true"]{background:var(--sage-soft);color:var(--ink)}
-.fp-seg{display:grid;grid-template-columns:repeat(auto-fit,minmax(0,1fr));width:100%}
+.fp-seg{display:grid;grid-auto-flow:column;grid-auto-columns:minmax(0,1fr);width:100%}
+.lang-seg button{padding:10px 6px;font-size:1rem}
+.lang-seg button[aria-pressed="true"]{background:var(--sage);color:var(--surface)}
+.chip-mark[aria-pressed="true"]{border-color:var(--ok);background:var(--ok-soft)}
+.mk{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 6px;border-radius:5px;background:var(--ok-soft);color:var(--ok);margin-left:6px;vertical-align:middle}
+.ex{font-size:.92rem;color:var(--muted);font-style:italic;overflow-wrap:anywhere}
+.pair .ex{grid-column:1/-1;margin-top:-4px}
+.pair.marked{box-shadow:inset 4px 0 0 var(--ok)}
 .fp-seg button{padding:9px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2}
 .fp-seg small{font-weight:400}
 .dir-block{display:flex;flex-direction:column;gap:6px}
@@ -167,7 +174,7 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
 <body>
 <div class="wrap">
   <header>
-    <span class="eyebrow">KidsWörtli · Französisch</span>
+    <span class="eyebrow" id="subject">KidsWörtli · Französisch</span>
     <h1 id="title">Päckli</h1>
     <div class="profiles" id="profiles" aria-label="Wer übt?"></div>
   </header>
@@ -183,6 +190,10 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
   </section>
 
   <div id="app" class="panel" style="gap:18px">
+  <div class="seg fp-seg lang-seg" id="langSeg" role="group" aria-label="Fach wählen">
+    <button data-lang="fr" aria-pressed="true"><b>Französisch</b></button>
+    <button data-lang="en" aria-pressed="false"><b>Englisch</b></button>
+  </div>
   <div class="seg fp-seg" id="fpSeg" role="group" aria-label="Fixpunkt wählen"></div>
   <section class="fix" aria-labelledby="fixh">
     <div class="fix-top">
@@ -224,6 +235,7 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
         </div>
       </div>
       <div class="row">
+        <button class="chip chip-mark" id="onlyMarked" aria-pressed="false" hidden>Nur grün markierte</button>
         <button class="chip" id="onlyNok" aria-pressed="false">Nur nicht gewusste</button>
       </div>
       <button class="btn" id="start">Runde starten</button>
@@ -250,16 +262,33 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
 /* Jeder Fixpunkt fasst zwei Päckli zusammen. Neue Päckli: hier einen Fixpunkt
    ergänzen und unten Karten, Lücken und Genus-Wörter mit dem Päckli-Kürzel. */
 const FIXPUNKTE = [
-  {id:"fp3", name:"Fixpunkt 3", date:new Date(2026, 9, 20), packs:["3A","3B"],
+  {id:"fp3", lang:"fr", name:"Fixpunkt 3", date:new Date(2026, 9, 20), packs:["3A","3B"],
    sheet:["Foto war um 90° gedreht und wurde ausgerichtet.",
           "Titel, Spaltenköpfe und der Spruch unten wurden nicht als Vokabeln übernommen.",
           "3 Stellen sehen nach Tippfehlern auf dem Blatt aus. Du entscheidest, was gelernt wird."]},
-  {id:"fp4", name:"Fixpunkt 4", date:new Date(2026, 10, 3), packs:["4A","4B"],
+  {id:"fp4", lang:"fr", name:"Fixpunkt 4", date:new Date(2026, 10, 3), packs:["4A","4B"],
    sheet:["Foto war um 90° gedreht und wurde ausgerichtet.",
           "Titel, Spaltenköpfe und der Spruch unten wurden nicht als Vokabeln übernommen.",
-          "Keine Tippfehler auf dem Blatt gefunden."]}
+          "Keine Tippfehler auf dem Blatt gefunden."]},
+  {id:"en1", lang:"en", name:"Unit 1", title:"Unit 1 – Getting together", date:null, packs:["E1","E2","E3","E4","E5"],
+   sheet:["Die Beispielsätze wurden übernommen; sie erscheinen bei der Lösung und im Lückentext.",
+          "Grün markierte Wörter sind mit «grün» gekennzeichnet und lassen sich separat üben.",
+          "Die Französisch-Spalte im Buch wurde weggelassen."]}
 ];
-const PACKS = {"3A":"KW 37","3B":"KW 38","4A":"KW 43","4B":"KW 44"};
+/* Päckli bzw. Abschnitte: Kurzname, voller Name, Zusatz */
+const PACKS = {
+  "3A":{short:"3A", title:"Päckli 3A", sub:"KW 37"}, "3B":{short:"3B", title:"Päckli 3B", sub:"KW 38"},
+  "4A":{short:"4A", title:"Päckli 4A", sub:"KW 43"}, "4B":{short:"4B", title:"Päckli 4B", sub:"KW 44"},
+  "E1":{short:"Teil 1", title:"Teil 1", sub:"Familie"},
+  "E2":{short:"Teil 2", title:"Teil 2", sub:"Fragen, Eltern, Sprachen"},
+  "E3":{short:"Teil 3", title:"Teil 3", sub:"Hobbys"},
+  "E4":{short:"Teil 4", title:"Teil 4", sub:"Wochentage"},
+  "E5":{short:"Teil 5", title:"Teil 5", sub:"Tageszeit"}
+};
+const LANGS = {
+  fr:{name:"Französisch", code:"fr-FR", ph:"En français …", acc:["à","â","ç","é","è","ê","ë","î","ï","ô","ù","û","œ"]},
+  en:{name:"Englisch", code:"en-GB", ph:"In English …", acc:[]}
+};
 
 const CARDS = [
   {id:"a1",p:"3A",fr:"Ça dure…",de:"Es dauert…"},
@@ -298,7 +327,43 @@ const CARDS = [
   {id:"d8",p:"4B",fr:"septembre",de:"September"},
   {id:"d9",p:"4B",fr:"octobre",de:"Oktober"},
   {id:"d10",p:"4B",fr:"novembre",de:"November"},
-  {id:"d11",p:"4B",fr:"décembre",de:"Dezember"}
+  {id:"d11",p:"4B",fr:"décembre",de:"Dezember"},
+
+  /* Englisch Unit 1 – Feld "fr" enthält hier das Englische (Fremdsprache) */
+  {id:"e1",p:"E1",m:1,fr:"name",de:"der Name",ex:"What's your name?"},
+  {id:"e2",p:"E1",m:1,fr:"family",de:"die Familie",ex:"My family name is Konar."},
+  {id:"e3",p:"E1",m:1,fr:"I am from … / I'm from …",de:"Ich komme aus/von …",ex:"I am from Switzerland."},
+  {id:"e4",p:"E1",m:1,fr:"Who …?",de:"Wer …?",ex:"Who is in the camp with you?"},
+  {id:"e5",p:"E1",m:1,fr:"sister",de:"die Schwester",ex:"I have a sister."},
+  {id:"e6",p:"E1",m:1,fr:"brother",de:"der Bruder",ex:"I have a brother."},
+  {id:"e7",p:"E1",fr:"I like …",de:"Ich mag …",ex:"I like painting."},
+  {id:"e8",p:"E1",fr:"I love …",de:"Ich liebe …",ex:"I love playing music."},
+  {id:"e9",p:"E2",m:1,fr:"What …?",de:"Welche …? / Was …?",ex:"What languages do you speak? What is your hobby?"},
+  {id:"e10",p:"E2",m:1,fr:"How …?",de:"Wie …?",ex:"How old are you?"},
+  {id:"e11",p:"E2",m:1,fr:"Where … from?",de:"Woher …?",ex:"Where are you from?"},
+  {id:"e12",p:"E2",m:1,fr:"father",de:"der Vater",ex:"My father is from France."},
+  {id:"e13",p:"E2",m:1,fr:"mother",de:"die Mutter",ex:"My mother is from England."},
+  {id:"e14",p:"E2",m:1,fr:"English",de:"das Englisch",ex:"I speak English."},
+  {id:"e15",p:"E2",fr:"Swiss German",de:"das Schweizerdeutsch",ex:"I speak Swiss German."},
+  {id:"e16",p:"E3",fr:"climbing",de:"das Klettern",ex:"I like climbing."},
+  {id:"e17",p:"E3",fr:"dancing",de:"das Tanzen",ex:"I like dancing."},
+  {id:"e18",p:"E3",fr:"cooking",de:"das Kochen",ex:"I am interested in cooking."},
+  {id:"e19",p:"E3",fr:"rowing",de:"das Rudern",ex:"I like rowing in the afternoon."},
+  {id:"e20",p:"E3",fr:"horse riding",de:"das Reiten",ex:"I love horse riding."},
+  {id:"e21",p:"E3",fr:"hiking",de:"das Wandern",ex:"Elena loves hiking on Sundays."},
+  {id:"e22",p:"E3",fr:"acting",de:"die Schauspielerei",ex:"I am interested in acting."},
+  {id:"e23",p:"E3",fr:"painting",de:"das Malen",ex:"On Monday, painting is at 2:00 p.m."},
+  {id:"e24",p:"E3",fr:"sailing",de:"das Segeln",ex:"On Tuesday, sailing is at 9:00 a.m."},
+  {id:"e25",p:"E4",fr:"My favourite day is …",de:"Mein Lieblingstag ist …",ex:"My favourite day is Sunday."},
+  {id:"e26",p:"E4",m:1,fr:"Monday",de:"Montag",ex:"On Monday, I go swimming."},
+  {id:"e27",p:"E4",m:1,fr:"Tuesday",de:"Dienstag",ex:"On Tuesday, dancing is at 3:00 p.m."},
+  {id:"e28",p:"E4",m:1,fr:"Wednesday",de:"Mittwoch",ex:"My favourite activity is on Wednesday."},
+  {id:"e29",p:"E4",m:1,fr:"Thursday",de:"Donnerstag",ex:"On Thursday, we go rowing."},
+  {id:"e30",p:"E4",m:1,fr:"Friday",de:"Freitag",ex:"Elena's favourite day is Friday."},
+  {id:"e31",p:"E4",m:1,fr:"Saturday",de:"Samstag",ex:"On Saturday, we go climbing."},
+  {id:"e32",p:"E4",m:1,fr:"Sunday",de:"Sonntag",ex:"I plan to arrive on Sunday in the afternoon."},
+  {id:"e33",p:"E5",fr:"in the morning",de:"am Morgen / am Vormittag",ex:"Singing is in the morning."},
+  {id:"e34",p:"E5",fr:"in the afternoon",de:"am Nachmittag",ex:"Swimming is in the afternoon."}
 ];
 
 const FIXES = [
@@ -331,7 +396,44 @@ const GAPS = [
   {p:"4B",pre:"au ",ans:"bord",post:" du lac",hint:"am Ufer des Sees"},
   {p:"4B",pre:"au bord du ",ans:"lac",post:"",hint:"am Ufer des Sees"},
   {p:"4B",pre:"au bord de la ",ans:"rivière",post:"",hint:"am Ufer des Flusses"},
-  {p:"4B",pre:"en ",ans:"Suisse",post:"",hint:"in der Schweiz"}
+  {p:"4B",pre:"en ",ans:"Suisse",post:"",hint:"in der Schweiz"},
+
+  /* Englisch: Beispielsätze aus dem Buch, das fett gedruckte Wort fehlt */
+  {p:"E1",c:"e1",pre:"What's your ",ans:"name",post:"?",hint:"der Name"},
+  {p:"E1",c:"e2",pre:"My ",ans:"family",post:" name is Konar.",hint:"die Familie"},
+  {p:"E1",c:"e3",pre:"I am ",ans:"from",post:" Switzerland.",hint:"Ich komme aus …"},
+  {p:"E1",c:"e4",pre:"",ans:"Who",post:" is in the camp with you?",hint:"Wer …?"},
+  {p:"E1",c:"e5",pre:"I have a ",ans:"sister",post:".",hint:"die Schwester"},
+  {p:"E1",c:"e6",pre:"I have a ",ans:"brother",post:".",hint:"der Bruder"},
+  {p:"E1",c:"e7",pre:"I ",ans:"like",post:" painting.",hint:"Ich mag …"},
+  {p:"E1",c:"e8",pre:"I ",ans:"love",post:" playing music.",hint:"Ich liebe …"},
+  {p:"E2",c:"e9",pre:"",ans:"What",post:" languages do you speak?",hint:"Welche …?"},
+  {p:"E2",c:"e9",pre:"",ans:"What",post:" is your hobby?",hint:"Was …?"},
+  {p:"E2",c:"e10",pre:"",ans:"How",post:" old are you?",hint:"Wie …?"},
+  {p:"E2",c:"e11",pre:"",ans:"Where",post:" are you from?",hint:"Woher …?"},
+  {p:"E2",c:"e12",pre:"My ",ans:"father",post:" is from France.",hint:"der Vater"},
+  {p:"E2",c:"e13",pre:"My ",ans:"mother",post:" is from England.",hint:"die Mutter"},
+  {p:"E2",c:"e14",pre:"I speak ",ans:"English",post:".",hint:"das Englisch"},
+  {p:"E2",c:"e15",pre:"I speak ",ans:"Swiss German",post:".",hint:"das Schweizerdeutsch"},
+  {p:"E3",c:"e16",pre:"I like ",ans:"climbing",post:".",hint:"das Klettern"},
+  {p:"E3",c:"e17",pre:"I like ",ans:"dancing",post:".",hint:"das Tanzen"},
+  {p:"E3",c:"e18",pre:"I am interested in ",ans:"cooking",post:".",hint:"das Kochen"},
+  {p:"E3",c:"e19",pre:"I like ",ans:"rowing",post:" in the afternoon.",hint:"das Rudern"},
+  {p:"E3",c:"e20",pre:"I love ",ans:"horse riding",post:".",hint:"das Reiten"},
+  {p:"E3",c:"e21",pre:"Elena loves ",ans:"hiking",post:" on Sundays.",hint:"das Wandern"},
+  {p:"E3",c:"e22",pre:"I am interested in ",ans:"acting",post:".",hint:"die Schauspielerei"},
+  {p:"E3",c:"e23",pre:"On Monday, ",ans:"painting",post:" is at 2:00 p.m.",hint:"das Malen"},
+  {p:"E3",c:"e24",pre:"On Tuesday, ",ans:"sailing",post:" is at 9:00 a.m.",hint:"das Segeln"},
+  {p:"E4",c:"e25",pre:"My ",ans:"favourite",post:" day is Sunday.",hint:"Mein Lieblingstag ist …"},
+  {p:"E4",c:"e26",pre:"On ",ans:"Monday",post:", I go swimming.",hint:"Montag"},
+  {p:"E4",c:"e27",pre:"On ",ans:"Tuesday",post:", dancing is at 3:00 p.m.",hint:"Dienstag"},
+  {p:"E4",c:"e28",pre:"My favourite activity is on ",ans:"Wednesday",post:".",hint:"Mittwoch"},
+  {p:"E4",c:"e29",pre:"On ",ans:"Thursday",post:", we go rowing.",hint:"Donnerstag"},
+  {p:"E4",c:"e30",pre:"Elena's favourite day is ",ans:"Friday",post:".",hint:"Freitag"},
+  {p:"E4",c:"e31",pre:"On ",ans:"Saturday",post:", we go climbing.",hint:"Samstag"},
+  {p:"E4",c:"e32",pre:"I plan to arrive on ",ans:"Sunday",post:" in the afternoon.",hint:"Sonntag"},
+  {p:"E5",c:"e33",pre:"Singing is in the ",ans:"morning",post:".",hint:"am Morgen / am Vormittag"},
+  {p:"E5",c:"e34",pre:"Swimming is in the ",ans:"afternoon",post:".",hint:"am Nachmittag"}
 ];
 
 const GENUS = [
@@ -360,10 +462,14 @@ const GENUS = [
 
 /* Aktiver Fixpunkt: gewählt oder der nächste anstehende */
 let FP = FIXPUNKTE[0];
-function defaultFp(){
-  const today = new Date(); today.setHours(0,0,0,0);
-  return FIXPUNKTE.find(f => f.date >= today) || FIXPUNKTE[FIXPUNKTE.length-1];
+const today0 = () => { const d = new Date(); d.setHours(0,0,0,0); return d; };
+/* Standard pro Fach: nächster anstehender Fixpunkt, sonst der erste ohne Datum, sonst der letzte */
+function defaultFp(lang = FP.lang){
+  const list = FIXPUNKTE.filter(f => f.lang === lang);
+  return list.find(f => f.date && f.date >= today0()) || list.find(f => !f.date) || list[list.length-1];
 }
+const L = () => LANGS[FP.lang];
+const PK = p => PACKS[p] || {short:p, title:p, sub:""};
 const inFp = x => FP.packs.includes(x.p);
 const fpGapIdx = () => GAPS.map((g, i) => inFp(g) ? i : -1).filter(i => i >= 0);
 const fpGenusIdx = () => GENUS.map((g, i) => inFp(g) ? i : -1).filter(i => i >= 0);
@@ -400,7 +506,8 @@ function speakBtn(txt, lang){ return `<button class="speak" data-say="${esc(txt)
 function say(txt, lang){
   try {
     if (!("speechSynthesis" in window)) throw 0;
-    const u = new SpeechSynthesisUtterance(txt.replace(/…/g,"").replace(/\//g," oder ").replace(/\(.*?\)/g,""));
+    const orWord = {fr:" ou ", en:" or "}[lang.slice(0,2)] || " oder ";
+    const u = new SpeechSynthesisUtterance(txt.replace(/…/g,"").replace(/\//g, orWord).replace(/\(.*?\)/g,""));
     u.lang = lang; u.rate = .9;
     const v = speechSynthesis.getVoices().find(v => v.lang && v.lang.toLowerCase().startsWith(lang.slice(0,2)));
     if (v) u.voice = v;
@@ -418,13 +525,26 @@ const noAcc = s => norm(s).normalize("NFD").replace(/[̀-ͯ]/g,"");
 /* ---------- Fixpunkt ---------- */
 function renderFix(){
   const today = new Date(); today.setHours(0,0,0,0);
-  const days = Math.round((FP.date - today) / 864e5);
-  $("#days").textContent = days >= 0 ? days : "0";
-  $("#fixh").textContent = days > 0 ? (days === 1 ? `Tag bis ${FP.name}` : `Tage bis ${FP.name}`) : (days === 0 ? `Heute ist ${FP.name}` : `${FP.name} ist vorbei`);
-  $("#fixdate").textContent = FP.date.toLocaleDateString("de-CH", {weekday:"long", day:"2-digit", month:"2-digit", year:"numeric"});
-  $("#title").innerHTML = "Päckli " + FP.packs.map(esc).join(" &amp; ");
-  $("#fpSeg").innerHTML = FIXPUNKTE.map(f => `<button data-fp="${f.id}" aria-pressed="${f===FP}"><b>${esc(f.name)}</b><small>${f.packs.join(" · ")} · ${f.date.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit"})}</small></button>`).join("");
+  const dated = !!FP.date;
+  const days = dated ? Math.round((FP.date - today) / 864e5) : 0;
+  $("#subject").textContent = "KidsWörtli · " + L().name;
+  document.querySelectorAll("#langSeg [data-lang]").forEach(b => b.setAttribute("aria-pressed", b.dataset.lang === FP.lang));
+  $("#days").hidden = !dated; $("#steps").hidden = !dated;
+  if (dated){
+    $("#days").textContent = days >= 0 ? days : "0";
+    $("#fixh").textContent = days > 0 ? (days === 1 ? `Tag bis ${FP.name}` : `Tage bis ${FP.name}`) : (days === 0 ? `Heute ist ${FP.name}` : `${FP.name} ist vorbei`);
+    $("#fixdate").textContent = FP.date.toLocaleDateString("de-CH", {weekday:"long", day:"2-digit", month:"2-digit", year:"numeric"});
+    $("#title").innerHTML = "Päckli " + FP.packs.map(esc).join(" &amp; ");
+  } else {
+    $("#fixh").textContent = FP.title || FP.name;
+    $("#fixdate").textContent = "Class vocabulary · ohne Prüfungsdatum";
+    $("#title").textContent = FP.title || FP.name;
+  }
+  const fps = FIXPUNKTE.filter(f => f.lang === FP.lang);
+  $("#fpSeg").hidden = fps.length < 2;
+  $("#fpSeg").innerHTML = fps.map(f => `<button data-fp="${f.id}" aria-pressed="${f===FP}"><b>${esc(f.name)}</b><small>${f.packs.map(x => PK(x).short).join(" · ")}${f.date ? " · " + f.date.toLocaleDateString("de-CH",{day:"2-digit",month:"2-digit"}) : ""}</small></button>`).join("");
   document.querySelectorAll("[data-fp]").forEach(b => b.onclick = () => setFp(b.dataset.fp));
+  $("#t-genus").hidden = !GENUS.some(inFp);
   const n = Math.max(0, Math.min(days, 40));
   $("#steps").innerHTML = Array.from({length:n}, (_,i) => `<span class="${i===n-1?'goal':''}"></span>`).join("");
 
@@ -432,14 +552,15 @@ function renderFix(){
     const cs = CARDS.filter(c => c.p === p);
     const ok = cs.filter(c => status(c.id)==="ok").length;
     const nok = cs.filter(c => status(c.id)==="nok").length;
-    return `<div class="bar-row"><span><b>${p}</b> <span class="muted">${PACKS[p]}</span></span>
+    return `<div class="bar-row"><span><b>${esc(PK(p).short)}</b> <span class="muted">${dated ? esc(PK(p).sub) : ""}</span></span>
       <div class="bar" role="img" aria-label="${ok} gewusst, ${nok} nicht gewusst von ${cs.length}">
         <i class="b-ok" style="width:${ok/cs.length*100}%"></i><i class="b-nok" style="width:${nok/cs.length*100}%"></i></div>
       <span class="num">${ok}/${cs.length}</span></div>`;
   }).join("") + '<div class="bar-sep"></div>' + [
+    ...(CARDS.some(c => inFp(c) && c.m) ? [["Grün", CARDS.filter(c => inFp(c) && c.m).map(c => S.status[c.id])]] : []),
     ["Lücken", fpGapIdx().map(i => S.gaps[i])],
     ["m / f", GENUS.filter(inFp).map(x => S.genus[x.w])]
-  ].map(([label, res]) => {
+  ].filter(([, res]) => res.length).map(([label, res]) => {
     const ok = res.filter(r => r==="ok").length, nok = res.filter(r => r==="nok").length, n = res.length;
     return `<div class="bar-row"><span><b>${label}</b></span>
       <div class="bar" role="img" aria-label="${ok} richtig, ${nok} falsch von ${n}">
@@ -451,7 +572,8 @@ function renderFix(){
   const open = fpCards.filter(c => status(c.id) !== "ok").length;
   const nok = fpCards.filter(c => status(c.id) === "nok").length;
   let plan;
-  if (open === 0) plan = "Alle Karten sitzen. Bis zum Fixpunkt reicht eine kurze Runde alle zwei Tage zum Wiederholen.";
+  if (open === 0) plan = dated ? "Alle Karten sitzen. Bis zum Fixpunkt reicht eine kurze Runde alle zwei Tage zum Wiederholen." : "Alle Karten sitzen. Eine kurze Runde alle paar Tage hält sie frisch.";
+  else if (!dated) plan = `Noch <b>${open}</b> Karten offen${nok ? `, davon ${nok} nicht gewusst` : ""}.`;
   else if (days <= 0) plan = `Noch ${open} Karten offen. Heute nochmals alle durchgehen.`;
   else {
     const perDay = Math.ceil(open / Math.max(1, days - 1));
@@ -470,7 +592,7 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 }));
 
 /* ---------- Karteikarten ---------- */
-const newSel = () => ({packs:new Set(FP.packs), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix", mode: S.mode==="write" ? "write" : "flip", onlyNok:false});
+const newSel = () => ({packs:new Set(FP.packs), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix", mode: S.mode==="write" ? "write" : "flip", onlyNok:false, onlyMarked:false});
 let sel = newSel();
 let round = null;
 
@@ -483,9 +605,16 @@ function cleanAns(s){
     .replace(/\s+/g," ").trim();
 }
 function variants(t){
-  const m = t.match(/(\S+)\/(\S+)/);
-  if (!m) return [t];
-  return [t, t.replace(m[0], m[1]), t.replace(m[0], m[2])];
+  // «A / B» = zwei gleichwertige Antworten; «a/b» innerhalb eines Satzes = a, b oder beides
+  const out = [t];
+  if (t.includes(" / ")) out.push(...t.split(" / "));
+  out.slice().forEach(x => {
+    const m = x.match(/(\S+)\/(\S+)/);
+    if (m) out.push(x.replace(m[0], m[1]), x.replace(m[0], m[2]));
+  });
+  // deutscher Artikel darf fehlen: «Name» statt «der Name»
+  out.slice().forEach(x => { const m = x.match(/^(der|die|das) (.+)$/i); if (m) out.push(m[2]); });
+  return out;
 }
 const stripAcc = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"");
 function checkWritten(input, target){
@@ -496,26 +625,34 @@ function checkWritten(input, target){
 }
 
 function pool(){
-  return CARDS.filter(c => sel.packs.has(c.p) && (!sel.onlyNok || status(c.id)==="nok"));
+  return CARDS.filter(c => sel.packs.has(c.p) && (!sel.onlyNok || status(c.id)==="nok") && (!sel.onlyMarked || c.m));
 }
 function renderSetup(){
   $("#packChips").innerHTML = FP.packs.map(p =>
-    `<button class="chip" data-pack="${p}" aria-pressed="${sel.packs.has(p)}">Päckli ${p} · ${PACKS[p]}</button>`).join("");
+    `<button class="chip" data-pack="${p}" aria-pressed="${sel.packs.has(p)}">${esc(PK(p).title)} · ${esc(PK(p).sub)}</button>`).join("");
   document.querySelectorAll("[data-pack]").forEach(b => b.onclick = () => {
     sel.packs.has(b.dataset.pack) ? sel.packs.delete(b.dataset.pack) : sel.packs.add(b.dataset.pack);
     renderSetup();
   });
   $("#onlyNok").setAttribute("aria-pressed", sel.onlyNok);
+  const markedN = CARDS.filter(c => inFp(c) && c.m).length;
+  $("#onlyMarked").hidden = !markedN;
+  $("#onlyMarked").textContent = `Nur grün markierte (${markedN})`;
+  $("#onlyMarked").setAttribute("aria-pressed", sel.onlyMarked);
+  const ln = L().name;
+  const dirTxt = {fd:[`Nur ${ln} → Deutsch`, `Du siehst ${ln} und sagst Deutsch`], df:[`Nur Deutsch → ${ln}`, `Du siehst Deutsch und sagst ${ln}`]};
+  document.querySelectorAll("#dirSeg button").forEach(b => { const t = dirTxt[b.dataset.dir]; if (t){ b.querySelector("b").textContent = t[0]; b.querySelector("small").textContent = t[1]; } });
   document.querySelectorAll("#dirSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.dir===sel.dir));
   document.querySelectorAll("#modeSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode===sel.mode));
   const n = pool().length;
   const nokCount = CARDS.filter(c => inFp(c) && status(c.id)==="nok").length;
   $("#start").disabled = n === 0;
   $("#setupInfo").textContent = n === 0
-    ? (sel.onlyNok ? "Keine nicht gewussten Karten in dieser Auswahl. Super!" : "Wähle mindestens ein Päckli.")
-    : `${n} Karten ausgewählt, ${({fd:"nur Französisch → Deutsch",df:"nur Deutsch → Französisch",mix:"gemischt"})[sel.dir]}. Nicht gewusste kommen etwa 1,5-mal so oft dran${nokCount ? ` (aktuell ${nokCount})` : ""}.`;
+    ? (sel.onlyNok ? "Keine nicht gewussten Karten in dieser Auswahl. Super!" : sel.onlyMarked ? "In dieser Auswahl gibt es keine grün markierten Karten." : "Wähle mindestens ein Päckli.")
+    : `${n} Karten ausgewählt${sel.onlyMarked ? " (nur grün markierte)" : ""}, ${({fd:`nur ${ln} → Deutsch`,df:`nur Deutsch → ${ln}`,mix:"gemischt"})[sel.dir]}. Nicht gewusste kommen etwa 1,5-mal so oft dran${nokCount ? ` (aktuell ${nokCount})` : ""}.`;
 }
 $("#onlyNok").onclick = () => { sel.onlyNok = !sel.onlyNok; renderSetup(); };
+$("#onlyMarked").onclick = () => { sel.onlyMarked = !sel.onlyMarked; renderSetup(); };
 document.querySelectorAll("#dirSeg button").forEach(b => b.onclick = () => { sel.dir = b.dataset.dir; S.dir = sel.dir; save(); renderSetup(); });
 document.querySelectorAll("#modeSeg button").forEach(b => b.onclick = () => { sel.mode = b.dataset.mode; S.mode = sel.mode; save(); renderSetup(); });
 
@@ -538,19 +675,20 @@ function renderCard(){
   const {c, dir} = round.deck[round.i];
   const fr = text(c,"fr"), de = text(c,"de");
   const q = dir==="fd" ? fr : de, a = dir==="fd" ? de : fr;
-  const ql = dir==="fd" ? "fr-FR" : "de-CH", al = dir==="fd" ? "de-CH" : "fr-FR";
+  const ql = dir==="fd" ? L().code : "de-CH", al = dir==="fd" ? "de-CH" : L().code;
   const st = status(c.id);
   if (round.mode === "write") return renderWriteCard(c, dir, q, a, ql, al, st);
   P.innerHTML = `
     <div class="progress" aria-hidden="true"><i style="width:${round.i/round.deck.length*100}%"></i></div>
     <div class="card">
       <div class="card-head">
-        <span class="eyebrow">${dir==="fd" ? "Französisch → Deutsch" : "Deutsch → Französisch"}</span>
-        <span class="tag">${c.p}${st==="nok" ? " · üben" : ""}</span>
+        <span class="eyebrow">${dir==="fd" ? `${L().name} → Deutsch` : `Deutsch → ${L().name}`}</span>
+        <span class="tag">${esc(PK(c.p).short)}${st==="nok" ? " · üben" : ""}</span>
       </div>
       <div class="say-line"><div class="q">${esc(q)}${c.g && dir==="fd" ? `<span class="g-badge">(${c.g})</span>` : ""}</div>${speakBtn(q, ql)}</div>
       ${round.shown ? `<div class="divider"></div>
-      <div class="say-line"><div class="a">${esc(a)}${c.g && dir==="df" ? `<span class="g-badge">(${c.g})</span>` : ""}</div>${speakBtn(a, al)}</div>` : ""}
+      <div class="say-line"><div class="a">${esc(a)}${c.g && dir==="df" ? `<span class="g-badge">(${c.g})</span>` : ""}${c.m ? '<span class="mk">grün</span>' : ""}</div>${speakBtn(a, al)}</div>
+      ${c.ex ? `<div class="say-line"><div class="ex">${esc(c.ex)}</div>${speakBtn(c.ex, L().code)}</div>` : ""}` : ""}
     </div>
     ${round.shown
       ? `<div class="btns"><button class="btn nok" id="nok">Nicht gewusst</button><button class="btn ok" id="ok">Gewusst</button></div>`
@@ -581,14 +719,15 @@ function renderWriteCard(c, dir, q, a, ql, al, st){
     <div class="progress" aria-hidden="true"><i style="width:${round.i/round.deck.length*100}%"></i></div>
     <div class="card">
       <div class="card-head">
-        <span class="eyebrow">${dir==="fd" ? "Schreibe auf Deutsch" : "Schreibe auf Französisch"}</span>
-        <span class="tag">${c.p}${st==="nok" ? " · üben" : ""}</span>
+        <span class="eyebrow">${dir==="fd" ? "Schreibe auf Deutsch" : `Schreibe auf ${L().name}`}</span>
+        <span class="tag">${esc(PK(c.p).short)}${st==="nok" ? " · üben" : ""}</span>
       </div>
       <div class="say-line"><div class="q">${esc(q)}${c.g && dir==="fd" ? `<span class="g-badge">(${c.g})</span>` : ""}</div>${speakBtn(q, ql)}</div>
       <textarea class="write-in" id="writeIn" rows="2" autocomplete="off" autocapitalize="off" spellcheck="false"
-        lang="${dir==="fd" ? "de" : "fr"}" aria-label="Deine Übersetzung" placeholder="${dir==="fd" ? "Auf Deutsch …" : "En français …"}" ${v ? "disabled" : ""}>${esc(round.typed)}</textarea>
+        lang="${dir==="fd" ? "de" : FP.lang}" aria-label="Deine Übersetzung" placeholder="${dir==="fd" ? "Auf Deutsch …" : L().ph}" ${v ? "disabled" : ""}>${esc(round.typed)}</textarea>
       ${v ? `${fb}
-        <div class="say-line"><div><div class="eyebrow" style="margin-bottom:2px">Lösung</div><div class="a">${esc(a)}</div></div>${speakBtn(a, al)}</div>` : ""}
+        <div class="say-line"><div><div class="eyebrow" style="margin-bottom:2px">Lösung</div><div class="a">${esc(a)}${c.m ? '<span class="mk">grün</span>' : ""}</div></div>${speakBtn(a, al)}</div>
+        ${c.ex ? `<div class="say-line"><div class="ex">${esc(c.ex)}</div>${speakBtn(c.ex, L().code)}</div>` : ""}` : ""}
     </div>
     ${v
       ? `<div class="btns">${v === "ok"
@@ -596,7 +735,7 @@ function renderWriteCard(c, dir, q, a, ql, al, st){
           : `<button class="btn ghost" id="override">Doch richtig</button>`}
          <button class="btn" id="next">Weiter</button></div>`
       : `<button class="btn" id="check">Prüfen</button>
-         ${dir==="df" ? `<div class="row" id="accents" aria-label="Sonderzeichen">${["à","â","ç","é","è","ê","ë","î","ï","ô","ù","û","œ"].map(ch => `<button class="chip" data-ch="${ch}" style="padding:6px 11px">${ch}</button>`).join("")}</div>` : ""}`}
+         ${dir==="df" && L().acc.length ? `<div class="row" id="accents" aria-label="Sonderzeichen">${L().acc.map(ch => `<button class="chip" data-ch="${ch}" style="padding:6px 11px">${ch}</button>`).join("")}</div>` : ""}`}
     <div class="row" style="justify-content:space-between">
       <span class="num">${round.i+1} / ${round.deck.length}</span>
       <button class="btn ghost" id="stop" style="padding:8px 14px">Runde beenden</button>
@@ -698,7 +837,7 @@ function renderGap(){
     <p class="muted" style="margin:0">Setze das fehlende Wort ein. Die deutsche Übersetzung hilft dir.</p>
     ${scoreLine(fpGapIdx().map(i => S.gaps[i]))}
     <div class="card" style="min-height:0">
-      <div class="card-head"><span class="eyebrow">Lückentext</span><span class="tag">${g.p}</span></div>
+      <div class="card-head"><span class="eyebrow">Lückentext</span><span class="tag">${esc(PK(g.p).short)}</span></div>
       <div class="gap-sentence">${esc(g.pre)}<input class="gap-input" id="gapIn" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Fehlendes Wort">${esc(g.post)}</div>
       <div class="muted">${esc(g.hint)}</div>
       <div id="gapFb"></div>
@@ -725,7 +864,7 @@ function renderGap(){
     else fb = `<div class="feedback nok">Richtig wäre: <b>${esc(g.ans)}</b></div>`;
     S.gaps[gi] = r; gap.res[gi] = r; save(); renderFix();
     const sc = P.querySelector(".score"); if (sc) sc.outerHTML = scoreLine(fpGapIdx().map(i => S.gaps[i]));
-    $("#gapFb").innerHTML = fb + `<div class="say-line" style="margin-top:10px;align-items:center"><div class="muted">${esc(full)}</div>${speakBtn(full,"fr-FR")}</div>`;
+    $("#gapFb").innerHTML = fb + `<div class="say-line" style="margin-top:10px;align-items:center"><div class="muted">${esc(full)}</div>${speakBtn(full, L().code)}</div>`;
     inp.disabled = true; gap.done = true;
     $("#gapCheck").textContent = gap.i + 1 >= gap.order.length ? "Auswertung" : "Weiter"; $("#gapCheck").focus();
   };
@@ -792,19 +931,20 @@ function renderSheet(){
     <div class="note">
       <b>So hat die App das Foto gelesen</b>
       <ul>
-        <li>Französisch- und Deutsch-Spalte wurden Zeile für Zeile zu ${n} Paaren verbunden.</li>
+        <li>${L().name}- und Deutsch-Spalte wurden Zeile für Zeile zu ${n} Paaren verbunden.</li>
         ${FP.sheet.map(t => `<li>${esc(t)}</li>`).join("")}
       </ul>
     </div>
     ${FP.packs.map(p => `
       <div class="pack">
-        <div class="pack-h"><h3>Päckli ${p}</h3><span class="eyebrow">${PACKS[p]}</span></div>
+        <div class="pack-h"><h3>${esc(PK(p).title)}</h3><span class="eyebrow">${esc(PK(p).sub)}</span></div>
         ${CARDS.filter(c => c.p===p).map(c => {
           const f = FIXES.find(x => x.card===c.id);
           const kept = f && S.fixes[f.id]==="orig";
-          return `<div class="pair${f?" flag":""}">
-            <div>${esc(text(c,"fr"))}${c.g?`<span class="g-badge">(${c.g})</span>`:""}</div>
+          return `<div class="pair${f?" flag":""}${c.m?" marked":""}">
+            <div>${esc(text(c,"fr"))}${c.g?`<span class="g-badge">(${c.g})</span>`:""}${c.m?'<span class="mk">grün</span>':""}</div>
             <div>${esc(text(c,"de"))}</div>
+            ${c.ex ? `<div class="ex">${esc(c.ex)}</div>` : ""}
             ${f ? `<div class="fixbox">
               <div>Auf dem Blatt: <s>${esc(f.orig)}</s><br>Vorschlag: <ins>${esc(c[f.field])}</ins></div>
               <div class="muted">${esc(f.why)}</div>
@@ -815,7 +955,7 @@ function renderSheet(){
           </div>`;
         }).join("")}
       </div>`).join("")}
-    <p class="muted" style="margin:0;font-size:.85rem">${esc(FP.name)} am ${FP.date.toLocaleDateString("de-CH")} wurde vom Blatt übernommen.</p>`;
+    ${FP.date ? `<p class="muted" style="margin:0;font-size:.85rem">${esc(FP.name)} am ${FP.date.toLocaleDateString("de-CH")} wurde vom Blatt übernommen.</p>` : ""}`;
   document.querySelectorAll("[data-fix]").forEach(b => b.onclick = () => {
     S.fixes[b.dataset.fix] = b.dataset.v; save(); renderSheet();
     toast(b.dataset.v==="fix" ? "Korrigierte Version wird geübt." : "Version vom Blatt wird geübt.");
@@ -839,24 +979,30 @@ function showWelcome(cancelable){
 function switchProfile(name){
   P.current = name; saveProfiles();
   loadState();
-  FP = FIXPUNKTE.find(f => f.id === S.fp) || defaultFp();
-  if (S.fp && FP !== defaultFp() && FP.date < defaultFp().date) FP = defaultFp(); // vergangener Fixpunkt -> nächster
+  FP = FIXPUNKTE.find(f => f.id === S.fp) || defaultFp("fr");
+  if (FP.date && FP.date < today0()) FP = defaultFp(FP.lang); // vergangener Fixpunkt -> nächster
   sel = newSel();
   round = null; gap = newGapRound(); gen = newGenRound();
   $("#welcome").hidden = true; $("#app").hidden = false;
   $("#play").hidden = true; $("#setup").hidden = false;
-  document.querySelector('.tabs button[data-tab="cards"]').click();
   renderProfiles(); renderFix(); renderSetup();
+  document.querySelector('.tabs button[data-tab="cards"]').click();
 }
 function setFp(id){
   FP = FIXPUNKTE.find(f => f.id === id) || defaultFp();
-  S.fp = FP.id; save();
+  S.fp = FP.id; S.fpLang = Object.assign(S.fpLang || {}, {[FP.lang]: FP.id}); save();
   sel = newSel(); round = null; gap = newGapRound(); gen = newGenRound();
   $("#play").hidden = true; $("#setup").hidden = false;
-  const active = document.querySelector('.tabs button[aria-selected="true"]');
-  (active || document.querySelector('.tabs button[data-tab="cards"]')).click();
   renderFix(); renderSetup();
+  const active = document.querySelector('.tabs button[aria-selected="true"]');
+  (active && !active.hidden ? active : document.querySelector('.tabs button[data-tab="cards"]')).click();
 }
+function setLang(lang){
+  const remembered = FIXPUNKTE.find(f => f.id === (S.fpLang || {})[lang]);
+  const pick = remembered && !(remembered.date && remembered.date < today0()) ? remembered : defaultFp(lang);
+  setFp(pick.id);
+}
+document.querySelectorAll("#langSeg [data-lang]").forEach(b => b.onclick = () => { if (b.dataset.lang !== FP.lang) setLang(b.dataset.lang); });
 $("#nameForm").addEventListener("submit", e => {
   e.preventDefault();
   const name = $("#nameInput").value.trim().slice(0, 20);
