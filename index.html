@@ -811,7 +811,8 @@ function renderSpeakCard(c, dir, q, a, ql, al, st){
       <div class="say-line"><div class="q">${esc(q)}${c.g && dir==="fd" ? `<span class="g-badge">(${c.g})</span>` : ""}</div>${speakBtn(q, ql)}</div>
       ${!v ? `
         <button class="mic${round.listening ? " listening" : ""}" id="mic" aria-label="${round.listening ? "Hört zu" : "Antwort sprechen"}">${micIcon}</button>
-        <div class="mic-hint" id="micHint">${round.listening ? "Ich höre zu … sprich jetzt." : esc(round.micMsg || "Tippe aufs Mikrofon und sag die Antwort.")}</div>` : `
+        <div class="mic-hint" id="micHint">${round.listening ? "Ich höre zu … sprich jetzt." : esc(round.micMsg || "Tippe aufs Mikrofon und sag die Antwort.")}</div>
+        ${navigator.standalone && !round.listening ? `<div class="mic-hint" style="font-size:.8rem">Klappt es nicht? Auf dem iPhone funktioniert die Spracherkennung oft nur in Safari, nicht in der App vom Home-Bildschirm.</div>` : ""}` : `
         <div class="heard">Verstanden: <b>«${esc(round.matched || heard[0] || "")}»</b>
           ${heard.length > 1 ? `<small>Weitere Vorschläge: ${heard.filter(h => h !== round.matched).slice(0,3).map(h => "«" + esc(h) + "»").join(", ")}</small>` : ""}</div>
         <div class="feedback ${v === "ok" ? "ok" : "nok"}">${v === "ok" ? "Richtig!" : "Leider nicht ganz."}</div>
@@ -836,22 +837,41 @@ function renderSpeakCard(c, dir, q, a, ql, al, st){
       if (round.listening){ stopRec(); renderCard(); return; }
       let rec;
       try { rec = new SpeechRec(); } catch(e){ round.micMsg = "Spracherkennung ist auf diesem Gerät nicht verfügbar."; renderCard(); return; }
-      rec.lang = recLang; rec.maxAlternatives = 5; rec.interimResults = false; rec.continuous = false;
-      let got = false;
-      rec.onresult = e => {
-        got = true;
-        const alts = Array.from(e.results[0]).map(r => r.transcript.trim()).filter(Boolean);
+      /* Zwischenergebnisse einschalten: Safari auf dem iPhone liefert oft kein
+         Endergebnis und beendet die Aufnahme nicht von selbst. Nach kurzer Stille
+         nehmen wir deshalb den zuletzt gehörten Text. */
+      rec.lang = recLang; rec.maxAlternatives = 5; rec.interimResults = true; rec.continuous = false;
+      let done = false, lastAlts = [], silence = null;
+      const hardStop = setTimeout(() => { try { rec.stop(); } catch(e){} }, 10000);
+      const finish = alts => {
+        if (done) return; done = true;
+        clearTimeout(silence); clearTimeout(hardStop);
+        try { rec.abort(); } catch(e){}
+        round.listening = false; round.rec = null;
+        if (!alts.length){ round.micMsg = "Nichts gehört. Tippe nochmals aufs Mikrofon und sprich deutlich."; renderCard(); return; }
         const j = judgeSpeech(alts, a);
         round.heard = alts; round.matched = j.heard; round.verdict = j.ok ? "ok" : "nok";
-        round.listening = false; round.rec = null;
         record(c, round.verdict);
         renderCard();
       };
+      rec.onresult = e => {
+        const res = e.results[e.results.length - 1];
+        const alts = Array.from(res).map(r => (r.transcript || "").trim()).filter(Boolean);
+        if (alts.length) lastAlts = alts;
+        const hint = $("#micHint"); if (hint && lastAlts[0]) hint.textContent = "… " + lastAlts[0];
+        if (res.isFinal) return finish(lastAlts);
+        clearTimeout(silence);
+        silence = setTimeout(() => finish(lastAlts), 1400);
+      };
       rec.onerror = e => {
-        got = true; round.listening = false; round.rec = null;
+        if (done) return;
+        if (e.error === "no-speech" && lastAlts.length) return finish(lastAlts);
+        done = true; clearTimeout(silence); clearTimeout(hardStop);
+        round.listening = false; round.rec = null;
+        const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
         round.micMsg = ({
-          "not-allowed": "Das Mikrofon ist nicht erlaubt. Bitte in Chrome für diese Seite das Mikrofon zulassen.",
-          "service-not-allowed": "Das Mikrofon ist nicht erlaubt. Bitte in Chrome für diese Seite das Mikrofon zulassen.",
+          "not-allowed": ios ? "Das Mikrofon ist nicht erlaubt. iPhone: Einstellungen → Safari → Mikrofon → «Erlauben»." : "Das Mikrofon ist nicht erlaubt. Bitte in Chrome für diese Seite das Mikrofon zulassen.",
+          "service-not-allowed": ios ? "Spracherkennung ist gesperrt. iPhone: Einstellungen → Siri → «Diktieren» bzw. «Siri & Diktieren» einschalten." : "Das Mikrofon ist nicht erlaubt. Bitte in Chrome für diese Seite das Mikrofon zulassen.",
           "no-speech": "Nichts gehört. Tippe nochmals aufs Mikrofon und sprich deutlich.",
           "audio-capture": "Kein Mikrofon gefunden.",
           "network": "Für die Spracherkennung braucht es eine Internetverbindung.",
@@ -859,9 +879,9 @@ function renderSpeakCard(c, dir, q, a, ql, al, st){
         })[e.error] ?? "Das hat nicht geklappt. Bitte nochmals versuchen.";
         renderCard();
       };
-      rec.onend = () => { if (!got){ round.listening = false; round.rec = null; round.micMsg = "Nichts gehört. Tippe nochmals aufs Mikrofon."; renderCard(); } };
+      rec.onend = () => { if (!done) finish(lastAlts); };
       round.rec = rec; round.listening = true; round.micMsg = "";
-      try { rec.start(); } catch(e){ round.listening = false; round.micMsg = "Das Mikrofon konnte nicht gestartet werden."; }
+      try { rec.start(); } catch(e){ done = true; clearTimeout(hardStop); round.listening = false; round.micMsg = "Das Mikrofon konnte nicht gestartet werden."; }
       renderCard();
     };
   } else {
