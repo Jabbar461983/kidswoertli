@@ -154,6 +154,13 @@ header p{margin:0;color:var(--muted)}
 .score span{padding:4px 10px;border-radius:999px;font-weight:700;font-variant-numeric:tabular-nums}
 .score .s-ok{background:var(--ok-soft);color:var(--ok)}
 .score .s-nok{background:var(--nok-soft);color:var(--nok)}
+.mic{width:76px;height:76px;border-radius:50%;border:0;background:var(--sage);display:grid;place-items:center;margin:4px auto 0;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+.mic svg{width:34px;height:34px;fill:none;stroke:var(--surface);stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.mic.listening{background:var(--nok);animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(176,69,58,.45)}50%{box-shadow:0 0 0 14px rgba(176,69,58,0)}}
+.mic-hint{text-align:center;font-size:.9rem;color:var(--muted)}
+.heard{font-size:.95rem;overflow-wrap:anywhere}
+.heard small{display:block;color:var(--muted);font-size:.8rem;margin-top:2px}
 .bar-sep{height:1px;background:var(--line);margin:2px 0}
 .g-badge{font-size:.72rem;font-weight:700;color:var(--rose);margin-left:4px}
 
@@ -232,6 +239,7 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
         <div class="dir" id="modeSeg" role="group" aria-labelledby="modeLabel">
           <button data-mode="flip" aria-pressed="true"><b>Aufdecken</b><small>Im Kopf übersetzen, Lösung zeigen, selbst bewerten</small></button>
           <button data-mode="write" aria-pressed="false"><b>Schreiben</b><small>Ganze Wörter und Sätze eintippen, die App prüft</small></button>
+          <button data-mode="speak" aria-pressed="false" hidden><b>Sprechen</b><small>Antwort laut sagen, die App hört zu und prüft</small></button>
         </div>
       </div>
       <div class="row">
@@ -592,7 +600,12 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 }));
 
 /* ---------- Karteikarten ---------- */
-const newSel = () => ({packs:new Set(FP.packs), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix", mode: S.mode==="write" ? "write" : "flip", onlyNok:false, onlyMarked:false});
+/* Sprechen: Spracherkennung des Browsers (Chrome auf Android, Safari auf dem iPhone).
+   Nur sichtbar, wenn der Browser sie anbietet (z. B. nicht in Firefox). */
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+const speakAllowed = () => !!SpeechRec;
+const newSel = () => ({packs:new Set(FP.packs), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix",
+  mode: S.mode==="write" ? "write" : (S.mode==="speak" && speakAllowed()) ? "speak" : "flip", onlyNok:false, onlyMarked:false});
 let sel = newSel();
 let round = null;
 
@@ -643,6 +656,8 @@ function renderSetup(){
   const dirTxt = {fd:[`Nur ${ln} → Deutsch`, `Du siehst ${ln} und sagst Deutsch`], df:[`Nur Deutsch → ${ln}`, `Du siehst Deutsch und sagst ${ln}`]};
   document.querySelectorAll("#dirSeg button").forEach(b => { const t = dirTxt[b.dataset.dir]; if (t){ b.querySelector("b").textContent = t[0]; b.querySelector("small").textContent = t[1]; } });
   document.querySelectorAll("#dirSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.dir===sel.dir));
+  $('#modeSeg [data-mode="speak"]').hidden = !speakAllowed();
+  if (sel.mode === "speak" && !speakAllowed()) sel.mode = "flip";
   document.querySelectorAll("#modeSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode===sel.mode));
   const n = pool().length;
   const nokCount = CARDS.filter(c => inFp(c) && status(c.id)==="nok").length;
@@ -678,6 +693,7 @@ function renderCard(){
   const ql = dir==="fd" ? L().code : "de-CH", al = dir==="fd" ? "de-CH" : L().code;
   const st = status(c.id);
   if (round.mode === "write") return renderWriteCard(c, dir, q, a, ql, al, st);
+  if (round.mode === "speak") return renderSpeakCard(c, dir, q, a, ql, al, st);
   P.innerHTML = `
     <div class="progress" aria-hidden="true"><i style="width:${round.i/round.deck.length*100}%"></i></div>
     <div class="card">
@@ -765,6 +781,116 @@ function renderWriteCard(c, dir, q, a, ql, al, st){
     $("#next").focus();
   }
   function next(){ round.i++; round.typed = ""; round.verdict = null; renderCard(); }
+}
+/* Gesprochene Antwort prüfen: Akzente zählen nicht (hört man nicht), die Erkennung
+   liefert mehrere Vorschläge – passt einer, ist es richtig. Zusätzliche Wörter
+   rundherum (z. B. Artikel) sind erlaubt. */
+function judgeSpeech(alts, target){
+  const opts = variants(target).map(cleanAns).map(stripAcc).filter(Boolean);
+  for (const alt of alts){
+    const h = stripAcc(cleanAns(alt));
+    if (opts.includes(h)) return {ok:true, heard:alt};
+    if (opts.some(o => o.length >= 3 && (" " + h + " ").includes(" " + o + " "))) return {ok:true, heard:alt};
+  }
+  return {ok:false, heard:alts[0] || ""};
+}
+const micIcon = '<svg viewBox="0 0 24 24"><rect x="9" y="3" width="6" height="11" rx="3"/><path d="M5 11a7 7 0 0 0 14 0"/><path d="M12 18v3"/></svg>';
+function renderSpeakCard(c, dir, q, a, ql, al, st){
+  const box = $("#play");
+  const v = round.verdict;          // null | "ok" | "nok"
+  const heard = round.heard || [];  // Vorschläge der Erkennung
+  const recLang = dir === "fd" ? "de-DE" : L().code;
+  const target = dir === "fd" ? "Deutsch" : L().name;
+  box.innerHTML = `
+    <div class="progress" aria-hidden="true"><i style="width:${round.i/round.deck.length*100}%"></i></div>
+    <div class="card">
+      <div class="card-head">
+        <span class="eyebrow">Sag es auf ${esc(target)}</span>
+        <span class="tag">${esc(PK(c.p).short)}${st==="nok" ? " · üben" : ""}</span>
+      </div>
+      <div class="say-line"><div class="q">${esc(q)}${c.g && dir==="fd" ? `<span class="g-badge">(${c.g})</span>` : ""}</div>${speakBtn(q, ql)}</div>
+      ${!v ? `
+        <button class="mic${round.listening ? " listening" : ""}" id="mic" aria-label="${round.listening ? "Hört zu" : "Antwort sprechen"}">${micIcon}</button>
+        <div class="mic-hint" id="micHint">${round.listening ? "Ich höre zu … sprich jetzt." : esc(round.micMsg || "Tippe aufs Mikrofon und sag die Antwort.")}</div>
+        ${navigator.standalone && !round.listening ? `<div class="mic-hint" style="font-size:.8rem">Klappt es nicht? Auf dem iPhone funktioniert die Spracherkennung oft nur in Safari, nicht in der App vom Home-Bildschirm.</div>` : ""}` : `
+        <div class="heard">Verstanden: <b>«${esc(round.matched || heard[0] || "")}»</b>
+          ${heard.length > 1 ? `<small>Weitere Vorschläge: ${heard.filter(h => h !== round.matched).slice(0,3).map(h => "«" + esc(h) + "»").join(", ")}</small>` : ""}</div>
+        <div class="feedback ${v === "ok" ? "ok" : "nok"}">${v === "ok" ? "Richtig!" : "Leider nicht ganz."}</div>
+        <div class="say-line"><div><div class="eyebrow" style="margin-bottom:2px">Lösung</div><div class="a">${esc(a)}${c.m ? '<span class="mk">grün</span>' : ""}</div></div>${speakBtn(a, al)}</div>
+        ${c.ex ? `<div class="say-line"><div class="ex">${esc(c.ex)}</div>${speakBtn(c.ex, L().code)}</div>` : ""}`}
+    </div>
+    ${v ? `<div class="btns">
+        ${v === "ok" ? `<button class="btn ghost" id="again">Nochmals sprechen</button>` : `<button class="btn ghost" id="override">Doch richtig</button>`}
+        <button class="btn" id="next">Weiter</button></div>
+      ${v === "nok" ? `<button class="btn ghost" id="again">Nochmals sprechen</button>` : ""}`
+      : `<button class="btn ghost" id="skip">Weiss ich nicht</button>`}
+    <div class="row" style="justify-content:space-between">
+      <span class="num">${round.i+1} / ${round.deck.length}</span>
+      <button class="btn ghost" id="stop" style="padding:8px 14px">Runde beenden</button>
+    </div>`;
+  const stopRec = () => { try { round.rec && round.rec.abort(); } catch(e){} round.rec = null; round.listening = false; };
+  const next = () => { stopRec(); round.i++; round.verdict = null; round.heard = []; round.matched = ""; round.micMsg = ""; renderCard(); };
+  $("#stop").onclick = () => { stopRec(); round.deck = round.deck.slice(0, round.i); renderSummary(); };
+  if (!v){
+    $("#skip").onclick = () => { stopRec(); round.verdict = "nok"; round.heard = []; round.matched = "–"; record(c, "nok"); renderCard(); };
+    $("#mic").onclick = () => {
+      if (round.listening){ stopRec(); renderCard(); return; }
+      let rec;
+      try { rec = new SpeechRec(); } catch(e){ round.micMsg = "Spracherkennung ist auf diesem Gerät nicht verfügbar."; renderCard(); return; }
+      /* Zwischenergebnisse einschalten: Safari auf dem iPhone liefert oft kein
+         Endergebnis und beendet die Aufnahme nicht von selbst. Nach kurzer Stille
+         nehmen wir deshalb den zuletzt gehörten Text. */
+      rec.lang = recLang; rec.maxAlternatives = 5; rec.interimResults = true; rec.continuous = false;
+      let done = false, lastAlts = [], silence = null;
+      const hardStop = setTimeout(() => { try { rec.stop(); } catch(e){} }, 10000);
+      const finish = alts => {
+        if (done) return; done = true;
+        clearTimeout(silence); clearTimeout(hardStop);
+        try { rec.abort(); } catch(e){}
+        round.listening = false; round.rec = null;
+        if (!alts.length){ round.micMsg = "Nichts gehört. Tippe nochmals aufs Mikrofon und sprich deutlich."; renderCard(); return; }
+        const j = judgeSpeech(alts, a);
+        round.heard = alts; round.matched = j.heard; round.verdict = j.ok ? "ok" : "nok";
+        record(c, round.verdict);
+        renderCard();
+      };
+      rec.onresult = e => {
+        const res = e.results[e.results.length - 1];
+        const alts = Array.from(res).map(r => (r.transcript || "").trim()).filter(Boolean);
+        if (alts.length) lastAlts = alts;
+        const hint = $("#micHint"); if (hint && lastAlts[0]) hint.textContent = "… " + lastAlts[0];
+        if (res.isFinal) return finish(lastAlts);
+        clearTimeout(silence);
+        silence = setTimeout(() => finish(lastAlts), 1400);
+      };
+      rec.onerror = e => {
+        if (done) return;
+        if (e.error === "no-speech" && lastAlts.length) return finish(lastAlts);
+        done = true; clearTimeout(silence); clearTimeout(hardStop);
+        round.listening = false; round.rec = null;
+        const ios = /iPhone|iPad|iPod/.test(navigator.userAgent);
+        round.micMsg = ({
+          "not-allowed": ios ? "Das Mikrofon ist nicht erlaubt. iPhone: Einstellungen → Safari → Mikrofon → «Erlauben»." : "Das Mikrofon ist nicht erlaubt. Bitte in Chrome für diese Seite das Mikrofon zulassen.",
+          "service-not-allowed": ios ? "Spracherkennung ist gesperrt. iPhone: Einstellungen → Siri → «Diktieren» bzw. «Siri & Diktieren» einschalten." : "Das Mikrofon ist nicht erlaubt. Bitte in Chrome für diese Seite das Mikrofon zulassen.",
+          "no-speech": "Nichts gehört. Tippe nochmals aufs Mikrofon und sprich deutlich.",
+          "audio-capture": "Kein Mikrofon gefunden.",
+          "network": "Für die Spracherkennung braucht es eine Internetverbindung.",
+          "aborted": ""
+        })[e.error] ?? "Das hat nicht geklappt. Bitte nochmals versuchen.";
+        renderCard();
+      };
+      rec.onend = () => { if (!done) finish(lastAlts); };
+      round.rec = rec; round.listening = true; round.micMsg = "";
+      try { rec.start(); } catch(e){ done = true; clearTimeout(hardStop); round.listening = false; round.micMsg = "Das Mikrofon konnte nicht gestartet werden."; }
+      renderCard();
+    };
+  } else {
+    document.querySelectorAll("#again").forEach(b => b.onclick = () => { round.verdict = null; round.heard = []; round.matched = ""; round.micMsg = ""; renderCard(); });
+    const ov = $("#override");
+    if (ov) ov.onclick = () => { record(c, "ok"); toast("Als richtig gezählt."); next(); };
+    $("#next").onclick = next;
+    $("#next").focus();
+  }
 }
 function record(c, r){
   round.res[c.id] = r; S.status[c.id] = r; save(); renderFix();
