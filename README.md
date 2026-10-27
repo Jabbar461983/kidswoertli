@@ -6,7 +6,7 @@ Lern-App für den Klassenwortschatz in zwei Fächern, oben umschaltbar:
 - **Englisch:** Unit 1 – Getting together (Class vocabulary, 34 Wörter in 5 Teilen, mit Beispielsätzen). Die im Buch grün markierten Wörter lassen sich mit «Nur grün markierte» separat üben, auch im Schreib-Modus.
 
 - **Karten:** Abfragerichtung nur Französisch → Deutsch, nur Deutsch → Französisch oder gemischt. Abfrageart «Aufdecken» (selbst bewerten mit «Gewusst / Nicht gewusst») oder «Schreiben» (ganze Wörter und Sätze eintippen, die App prüft; Gross/Klein und Satzzeichen zählen nicht, bei Akzentfehlern gibt es einen Hinweis). Nicht gewusste Karten lassen sich gezielt üben und kommen etwa 1,5-mal so oft dran.
-- **Sprechen (Test):** Nur im Profil «Admin» sichtbar. Antwort laut sagen, die Spracherkennung des Browsers (Chrome auf Android, Safari auf dem iPhone) wandelt sie in Text um, die App prüft. Auf dem iPhone nimmt die App nach kurzer Stille den zuletzt gehörten Text, weil Safari oft kein Endergebnis liefert. Akzente zählen nicht; passt einer der Vorschläge der Erkennung, ist die Antwort richtig.
+- **Sprechen:** Für alle Profile, sofern der Browser Spracherkennung anbietet (nicht in Firefox). Antwort laut sagen, die Spracherkennung des Browsers (Chrome auf Android, Safari auf dem iPhone) wandelt sie in Text um, die App prüft. Auf dem iPhone nimmt die App nach kurzer Stille den zuletzt gehörten Text, weil Safari oft kein Endergebnis liefert. Akzente zählen nicht; passt einer der Vorschläge der Erkennung, ist die Antwort richtig.
 - **Lücken:** Lückentext mit Tipp und Akzent-Hinweis.
 - **m / f:** Genus-Quiz (nur Französisch).
 - **Blatt:** erkannte Wortpaare mit markierten Tippfehlern vom Blatt; wählbar, ob die Korrektur oder die Version vom Blatt geübt wird.

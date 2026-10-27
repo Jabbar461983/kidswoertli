@@ -239,7 +239,7 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
         <div class="dir" id="modeSeg" role="group" aria-labelledby="modeLabel">
           <button data-mode="flip" aria-pressed="true"><b>Aufdecken</b><small>Im Kopf übersetzen, Lösung zeigen, selbst bewerten</small></button>
           <button data-mode="write" aria-pressed="false"><b>Schreiben</b><small>Ganze Wörter und Sätze eintippen, die App prüft</small></button>
-          <button data-mode="speak" aria-pressed="false" hidden><b>Sprechen <span class="mk" style="margin-left:4px">Test · nur Admin</span></b><small>Antwort laut sagen, die App hört zu und prüft</small></button>
+          <button data-mode="speak" aria-pressed="false" hidden><b>Sprechen</b><small>Antwort laut sagen, die App hört zu und prüft</small></button>
         </div>
       </div>
       <div class="row">
@@ -600,10 +600,10 @@ document.querySelectorAll(".tabs button").forEach(b => b.addEventListener("click
 }));
 
 /* ---------- Karteikarten ---------- */
-/* Sprechen: Spracherkennung des Browsers (Chrome auf Android), vorerst nur im Profil «Admin» */
+/* Sprechen: Spracherkennung des Browsers (Chrome auf Android, Safari auf dem iPhone).
+   Nur sichtbar, wenn der Browser sie anbietet (z. B. nicht in Firefox). */
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
-const isAdmin = () => (P.current || "").trim().toLowerCase() === "admin";
-const speakAllowed = () => !!SpeechRec && isAdmin();
+const speakAllowed = () => !!SpeechRec;
 const newSel = () => ({packs:new Set(FP.packs), dir: ["fd","df","mix"].includes(S.dir) ? S.dir : "mix",
   mode: S.mode==="write" ? "write" : (S.mode==="speak" && speakAllowed()) ? "speak" : "flip", onlyNok:false, onlyMarked:false});
 let sel = newSel();
