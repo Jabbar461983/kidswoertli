@@ -83,7 +83,7 @@ header p{margin:0;color:var(--muted)}
 .chip-mark[aria-pressed="true"]{border-color:var(--ok);background:var(--ok-soft)}
 .mk{display:inline-block;font-size:.7rem;font-weight:700;padding:1px 6px;border-radius:5px;background:var(--ok-soft);color:var(--ok);margin-left:6px;vertical-align:middle}
 .ex{font-size:.92rem;color:var(--muted);font-style:italic;overflow-wrap:anywhere}
-.pair .ex{grid-column:1/-1;margin-top:-4px}
+.pair .ex{grid-column:2/-1;margin-top:-2px}
 .pair.marked{box-shadow:inset 4px 0 0 var(--ok)}
 .fp-seg button{padding:9px 6px;display:flex;flex-direction:column;align-items:center;gap:1px;line-height:1.2}
 .fp-seg small{font-weight:400}
@@ -138,10 +138,19 @@ header p{margin:0;color:var(--muted)}
 .note ul{margin:6px 0 0;padding-left:18px}
 .pack{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
 .pack-h{display:flex;justify-content:space-between;align-items:baseline;padding:10px 14px;background:var(--rose-soft)}
-.pair{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px 14px;border-top:1px solid var(--line);font-size:.95rem}
+.pair{display:grid;grid-template-columns:auto 1fr 1fr;gap:6px 12px;align-items:start;padding:10px 14px;border-top:1px solid var(--line);font-size:.95rem}
+.pair > label{cursor:pointer}
+.pair.off > label, .pair.off .ex{opacity:.45}
+.pick{width:22px;height:22px;margin:0;accent-color:var(--sage);cursor:pointer}
+.pack-h{gap:10px}
+.pack-h label{display:flex;align-items:center;gap:10px;cursor:pointer;min-width:0}
+.pack-h .num{font-size:.8rem}
+.selbar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;background:var(--surface);border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.selbar .row{gap:6px}
+details.note summary{cursor:pointer;font-weight:700}
 .pair > div{min-width:0;overflow-wrap:anywhere}
 .pair.flag{background:var(--warn-soft)}
-.fixbox{grid-column:1/-1;display:flex;flex-direction:column;gap:8px;font-size:.88rem}
+.fixbox{grid-column:2/-1;display:flex;flex-direction:column;gap:8px;font-size:.88rem}
 .fixbox s{color:var(--nok)}
 .fixbox ins{text-decoration:none;color:var(--ok);font-weight:700}
 .fixbox .seg button{font-size:.8rem}
@@ -219,7 +228,7 @@ footer{font-size:.85rem;color:var(--muted);text-align:center;font-style:italic}
     <button role="tab" id="t-cards" aria-selected="true" data-tab="cards">Karten</button>
     <button role="tab" id="t-gaps" aria-selected="false" data-tab="gaps">Lücken</button>
     <button role="tab" id="t-genus" aria-selected="false" data-tab="genus">m / f</button>
-    <button role="tab" id="t-sheet" aria-selected="false" data-tab="sheet">Blatt</button>
+    <button role="tab" id="t-sheet" aria-selected="false" data-tab="sheet">Liste</button>
   </nav>
 
   <!-- Karteikarten -->
@@ -497,6 +506,13 @@ function loadState(){
 }
 function save(){ if (!P.current) return; try { localStorage.setItem(stateKey(), JSON.stringify(S)); } catch(e){} }
 const status = id => S.status[id] || "neu";
+/* Auswahl in der Liste: gespeichert werden nur abgewählte Wörtli, also ist standardmässig alles ausgewählt */
+const picked = c => !(S.off && S.off[c.id]);
+function setPicked(ids, on){
+  S.off = S.off || {};
+  ids.forEach(id => { if (on) delete S.off[id]; else S.off[id] = 1; });
+  save();
+}
 
 function text(card, field){
   const f = FIXES.find(x => x.card === card.id && x.field === field);
@@ -557,15 +573,16 @@ function renderFix(){
   $("#steps").innerHTML = Array.from({length:n}, (_,i) => `<span class="${i===n-1?'goal':''}"></span>`).join("");
 
   $("#bars").innerHTML = FP.packs.map(p => {
-    const cs = CARDS.filter(c => c.p === p);
+    const cs = CARDS.filter(c => c.p === p && picked(c));
     const ok = cs.filter(c => status(c.id)==="ok").length;
     const nok = cs.filter(c => status(c.id)==="nok").length;
+    const n = cs.length || 1;
     return `<div class="bar-row"><span><b>${esc(PK(p).short)}</b> <span class="muted">${dated ? esc(PK(p).sub) : ""}</span></span>
       <div class="bar" role="img" aria-label="${ok} gewusst, ${nok} nicht gewusst von ${cs.length}">
-        <i class="b-ok" style="width:${ok/cs.length*100}%"></i><i class="b-nok" style="width:${nok/cs.length*100}%"></i></div>
+        <i class="b-ok" style="width:${ok/n*100}%"></i><i class="b-nok" style="width:${nok/n*100}%"></i></div>
       <span class="num">${ok}/${cs.length}</span></div>`;
   }).join("") + '<div class="bar-sep"></div>' + [
-    ...(CARDS.some(c => inFp(c) && c.m) ? [["Grün", CARDS.filter(c => inFp(c) && c.m).map(c => S.status[c.id])]] : []),
+    ...(CARDS.some(c => inFp(c) && c.m && picked(c)) ? [["Grün", CARDS.filter(c => inFp(c) && c.m && picked(c)).map(c => S.status[c.id])]] : []),
     ["Lücken", fpGapIdx().map(i => S.gaps[i])],
     ["m / f", GENUS.filter(inFp).map(x => S.genus[x.w])]
   ].filter(([, res]) => res.length).map(([label, res]) => {
@@ -576,7 +593,7 @@ function renderFix(){
       <span class="num">${ok}/${n}</span></div>`;
   }).join("");
 
-  const fpCards = CARDS.filter(inFp);
+  const fpCards = CARDS.filter(c => inFp(c) && picked(c));
   const open = fpCards.filter(c => status(c.id) !== "ok").length;
   const nok = fpCards.filter(c => status(c.id) === "nok").length;
   let plan;
@@ -638,7 +655,7 @@ function checkWritten(input, target){
 }
 
 function pool(){
-  return CARDS.filter(c => sel.packs.has(c.p) && (!sel.onlyNok || status(c.id)==="nok") && (!sel.onlyMarked || c.m));
+  return CARDS.filter(c => sel.packs.has(c.p) && picked(c) && (!sel.onlyNok || status(c.id)==="nok") && (!sel.onlyMarked || c.m));
 }
 function renderSetup(){
   $("#packChips").innerHTML = FP.packs.map(p =>
@@ -648,7 +665,7 @@ function renderSetup(){
     renderSetup();
   });
   $("#onlyNok").setAttribute("aria-pressed", sel.onlyNok);
-  const markedN = CARDS.filter(c => inFp(c) && c.m).length;
+  const markedN = CARDS.filter(c => inFp(c) && c.m && picked(c)).length;
   $("#onlyMarked").hidden = !markedN;
   $("#onlyMarked").textContent = `Nur grün markierte (${markedN})`;
   $("#onlyMarked").setAttribute("aria-pressed", sel.onlyMarked);
@@ -660,11 +677,12 @@ function renderSetup(){
   if (sel.mode === "speak" && !speakAllowed()) sel.mode = "flip";
   document.querySelectorAll("#modeSeg button").forEach(b => b.setAttribute("aria-pressed", b.dataset.mode===sel.mode));
   const n = pool().length;
-  const nokCount = CARDS.filter(c => inFp(c) && status(c.id)==="nok").length;
+  const nokCount = CARDS.filter(c => inFp(c) && picked(c) && status(c.id)==="nok").length;
+  const offCount = CARDS.filter(c => inFp(c) && sel.packs.has(c.p) && !picked(c)).length;
   $("#start").disabled = n === 0;
   $("#setupInfo").textContent = n === 0
-    ? (sel.onlyNok ? "Keine nicht gewussten Karten in dieser Auswahl. Super!" : sel.onlyMarked ? "In dieser Auswahl gibt es keine grün markierten Karten." : "Wähle mindestens ein Päckli.")
-    : `${n} Karten ausgewählt${sel.onlyMarked ? " (nur grün markierte)" : ""}, ${({fd:`nur ${ln} → Deutsch`,df:`nur Deutsch → ${ln}`,mix:"gemischt"})[sel.dir]}. Nicht gewusste kommen etwa 1,5-mal so oft dran${nokCount ? ` (aktuell ${nokCount})` : ""}.`;
+    ? (sel.onlyNok ? "Keine nicht gewussten Karten in dieser Auswahl. Super!" : sel.onlyMarked ? "In dieser Auswahl gibt es keine grün markierten Karten." : sel.packs.size && offCount ? "Keine Wörtli ausgewählt. Wähle sie im Tab «Liste» aus." : "Wähle mindestens ein Päckli.")
+    : `${n} Karten ausgewählt${sel.onlyMarked ? " (nur grün markierte)" : ""}${offCount ? ` (${offCount} in der Liste abgewählt)` : ""}, ${({fd:`nur ${ln} → Deutsch`,df:`nur Deutsch → ${ln}`,mix:"gemischt"})[sel.dir]}. Nicht gewusste kommen etwa 1,5-mal so oft dran${nokCount ? ` (aktuell ${nokCount})` : ""}.`;
 }
 $("#onlyNok").onclick = () => { sel.onlyNok = !sel.onlyNok; renderSetup(); };
 $("#onlyMarked").onclick = () => { sel.onlyMarked = !sel.onlyMarked; renderSetup(); };
@@ -1049,27 +1067,36 @@ function renderGenus(){
   $("#genNext").onclick = () => { gen.i++; gen.done=false; renderGenus(); };
 }
 
-/* ---------- Blatt (Erkennung + Korrekturen) ---------- */
+/* ---------- Liste: Wörtli auswählen, Erkennung + Korrekturen ---------- */
 function renderSheet(){
-  const P = $("#p-sheet");
-  const n = CARDS.filter(inFp).length;
-  P.innerHTML = `
-    <div class="note">
-      <b>So hat die App das Foto gelesen</b>
-      <ul>
-        <li>${L().name}- und Deutsch-Spalte wurden Zeile für Zeile zu ${n} Paaren verbunden.</li>
-        ${FP.sheet.map(t => `<li>${esc(t)}</li>`).join("")}
-      </ul>
+  const box = $("#p-sheet");
+  const all = CARDS.filter(inFp);
+  const on = all.filter(picked).length;
+  box.innerHTML = `
+    <div class="selbar">
+      <span><b>${on}</b> von ${all.length} Wörtli ausgewählt</span>
+      <div class="row">
+        <button class="btn ghost" id="pickAll" style="padding:7px 12px" ${on === all.length ? "disabled" : ""}>Alle auswählen</button>
+        <button class="btn ghost" id="pickNone" style="padding:7px 12px" ${on === 0 ? "disabled" : ""}>Keine</button>
+      </div>
     </div>
-    ${FP.packs.map(p => `
+    <p class="muted" style="margin:0;font-size:.88rem">Nur ausgewählte Wörtli kommen in den Karten-Runden dran.</p>
+    ${FP.packs.map(p => {
+      const cs = CARDS.filter(c => c.p === p), k = cs.filter(picked).length;
+      return `
       <div class="pack">
-        <div class="pack-h"><h3>${esc(PK(p).title)}</h3><span class="eyebrow">${esc(PK(p).sub)}</span></div>
-        ${CARDS.filter(c => c.p===p).map(c => {
+        <div class="pack-h">
+          <label><input type="checkbox" class="pick" data-pick-pack="${p}" ${k === cs.length ? "checked" : ""} aria-label="Alle in ${esc(PK(p).title)} auswählen"><h3>${esc(PK(p).title)}</h3></label>
+          <span class="eyebrow">${esc(PK(p).sub)} · <span class="num">${k}/${cs.length}</span></span>
+        </div>
+        ${cs.map(c => {
           const f = FIXES.find(x => x.card===c.id);
           const kept = f && S.fixes[f.id]==="orig";
-          return `<div class="pair${f?" flag":""}${c.m?" marked":""}">
-            <div>${esc(text(c,"fr"))}${c.g?`<span class="g-badge">(${c.g})</span>`:""}${c.m?'<span class="mk">grün</span>':""}</div>
-            <div>${esc(text(c,"de"))}</div>
+          const id = "pick-" + c.id, sel = picked(c);
+          return `<div class="pair${f?" flag":""}${c.m?" marked":""}${sel?"":" off"}">
+            <input type="checkbox" class="pick" id="${id}" data-pick="${c.id}" ${sel ? "checked" : ""}>
+            <label for="${id}">${esc(text(c,"fr"))}${c.g?`<span class="g-badge">(${c.g})</span>`:""}${c.m?'<span class="mk">grün</span>':""}</label>
+            <label for="${id}">${esc(text(c,"de"))}</label>
             ${c.ex ? `<div class="ex">${esc(c.ex)}</div>` : ""}
             ${f ? `<div class="fixbox">
               <div>Auf dem Blatt: <s>${esc(f.orig)}</s><br>Vorschlag: <ins>${esc(c[f.field])}</ins></div>
@@ -1080,12 +1107,34 @@ function renderSheet(){
               </div></div>` : ""}
           </div>`;
         }).join("")}
-      </div>`).join("")}
-    ${FP.date ? `<p class="muted" style="margin:0;font-size:.85rem">${esc(FP.name)} am ${FP.date.toLocaleDateString("de-CH")} wurde vom Blatt übernommen.</p>` : ""}`;
+      </div>`;
+    }).join("")}
+    <details class="note">
+      <summary>So hat die App das Foto gelesen</summary>
+      <ul>
+        <li>${L().name}- und Deutsch-Spalte wurden Zeile für Zeile zu ${all.length} Paaren verbunden.</li>
+        ${FP.sheet.map(t => `<li>${esc(t)}</li>`).join("")}
+      </ul>
+      ${FP.date ? `<p class="muted" style="margin:6px 0 0;font-size:.85rem">${esc(FP.name)} am ${FP.date.toLocaleDateString("de-CH")} wurde vom Blatt übernommen.</p>` : ""}
+    </details>`;
+  // «Alle» pro Einheit: teilweise Auswahl als halbe Markierung anzeigen
+  box.querySelectorAll("[data-pick-pack]").forEach(cb => {
+    const cs = CARDS.filter(c => c.p === cb.dataset.pickPack), k = cs.filter(picked).length;
+    cb.indeterminate = k > 0 && k < cs.length;
+    cb.onchange = () => { setPicked(cs.map(c => c.id), cb.checked); afterPick(); };
+  });
+  box.querySelectorAll("[data-pick]").forEach(cb => cb.onchange = () => { setPicked([cb.dataset.pick], cb.checked); afterPick(); });
+  $("#pickAll").onclick = () => { setPicked(all.map(c => c.id), true); afterPick(); };
+  $("#pickNone").onclick = () => { setPicked(all.map(c => c.id), false); afterPick(); };
   document.querySelectorAll("[data-fix]").forEach(b => b.onclick = () => {
     S.fixes[b.dataset.fix] = b.dataset.v; save(); renderSheet();
     toast(b.dataset.v==="fix" ? "Korrigierte Version wird geübt." : "Version vom Blatt wird geübt.");
   });
+}
+function afterPick(){
+  const y = window.scrollY;
+  renderSheet(); renderFix(); renderSetup();
+  window.scrollTo(0, y);
 }
 
 /* ---------- Profilauswahl ---------- */
