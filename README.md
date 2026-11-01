@@ -9,7 +9,7 @@ Lern-App für den Klassenwortschatz in zwei Fächern, oben umschaltbar:
 - **Sprechen:** Für alle Profile, sofern der Browser Spracherkennung anbietet (nicht in Firefox). Antwort laut sagen, die Spracherkennung des Browsers (Chrome auf Android, Safari auf dem iPhone) wandelt sie in Text um, die App prüft. Auf dem iPhone nimmt die App nach kurzer Stille den zuletzt gehörten Text, weil Safari oft kein Endergebnis liefert. Akzente zählen nicht; passt einer der Vorschläge der Erkennung, ist die Antwort richtig.
 - **Lücken:** Lückentext mit Tipp und Akzent-Hinweis.
 - **m / f:** Genus-Quiz (nur Französisch).
-- **Blatt:** erkannte Wortpaare mit markierten Tippfehlern vom Blatt; wählbar, ob die Korrektur oder die Version vom Blatt geübt wird.
+- **Liste:** alle Wortpaare pro Einheit mit Checkbox; nur ausgewählte Wörtli kommen in den Karten-Runden dran (Standard: alle ausgewählt, «Alle auswählen» / «Keine», Checkbox pro Einheit). Die Auswahl wird pro Profil gespeichert. Tippfehler vom Blatt sind markiert; wählbar, ob die Korrektur oder die Version vom Blatt geübt wird.
 - Countdown zum Fixpunkt mit Tagesziel; Fortschritt für Karten, Lücken und m/f.
 - Mehrere Profile pro Gerät; der Lernstand bleibt im Browser des Geräts gespeichert.
 - Vorlesen über die Sprachausgabe des Geräts.
