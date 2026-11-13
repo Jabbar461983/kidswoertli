@@ -2,7 +2,7 @@
 
 Lern-App für den Klassenwortschatz in zwei Fächern, oben umschaltbar:
 
-- **Französisch:** Päckli 3A/3B (Fixpunkt 3, 20.10.2026) und 4A/4B (Fixpunkt 4, 03.11.2026). Standardmässig ist der nächste anstehende Fixpunkt aktiv.
+- **Französisch:** Päckli 3A/3B (Fixpunkt 3, 20.10.2026), 4A/4B (Fixpunkt 4, 03.11.2026) und 1A/1B (Fixpunkt 1, 01.12.2026). Standardmässig ist der nächste anstehende Fixpunkt aktiv.
 - **Englisch:** Unit 1 – Getting together (Class vocabulary, 34 Wörter in 5 Teilen, mit Beispielsätzen). Die im Buch grün markierten Wörter lassen sich mit «Nur grün markierte» separat üben, auch im Schreib-Modus.
 
 - **Karten:** Abfragerichtung nur Französisch → Deutsch, nur Deutsch → Französisch oder gemischt. Abfrageart «Aufdecken» (selbst bewerten mit «Gewusst / Nicht gewusst») oder «Schreiben» (ganze Wörter und Sätze eintippen, die App prüft; Gross/Klein und Satzzeichen zählen nicht, bei Akzentfehlern gibt es einen Hinweis). Nicht gewusste Karten lassen sich gezielt üben und kommen etwa 1,5-mal so oft dran.

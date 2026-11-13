@@ -287,6 +287,10 @@ const FIXPUNKTE = [
    sheet:["Foto war um 90° gedreht und wurde ausgerichtet.",
           "Titel, Spaltenköpfe und der Spruch unten wurden nicht als Vokabeln übernommen.",
           "Keine Tippfehler auf dem Blatt gefunden."]},
+  {id:"fp1", lang:"fr", name:"Fixpunkt 1", date:new Date(2026, 11, 1), packs:["1A","1B"],
+   sheet:["Titel, Spaltenköpfe und der Spruch unten wurden nicht als Vokabeln übernommen.",
+          "Auf dem Blatt ist keine Kalenderwoche angegeben.",
+          "1 Stelle sieht nach einem Tippfehler auf dem Blatt aus. Du entscheidest, was gelernt wird."]},
   {id:"en1", lang:"en", name:"Unit 1", title:"Unit 1 – Getting together", date:null, packs:["E1","E2","E3","E4","E5"],
    sheet:["Die Beispielsätze wurden übernommen; sie erscheinen bei der Lösung und im Lückentext.",
           "Grün markierte Wörter sind mit «grün» gekennzeichnet und lassen sich separat üben.",
@@ -296,6 +300,7 @@ const FIXPUNKTE = [
 const PACKS = {
   "3A":{short:"3A", title:"Päckli 3A", sub:"KW 37"}, "3B":{short:"3B", title:"Päckli 3B", sub:"KW 38"},
   "4A":{short:"4A", title:"Päckli 4A", sub:"KW 43"}, "4B":{short:"4B", title:"Päckli 4B", sub:"KW 44"},
+  "1A":{short:"1A", title:"Päckli 1A", sub:""}, "1B":{short:"1B", title:"Päckli 1B", sub:""},
   "E1":{short:"Teil 1", title:"Teil 1", sub:"Familie"},
   "E2":{short:"Teil 2", title:"Teil 2", sub:"Fragen, Eltern, Sprachen"},
   "E3":{short:"Teil 3", title:"Teil 3", sub:"Hobbys"},
@@ -346,6 +351,28 @@ const CARDS = [
   {id:"d10",p:"4B",fr:"novembre",de:"November"},
   {id:"d11",p:"4B",fr:"décembre",de:"Dezember"},
 
+  {id:"g1",p:"1A",fr:"Il te faut une assiette.",de:"Du brauchst einen Teller."},
+  {id:"g2",p:"1A",fr:"Il te faut …",de:"Du brauchst …"},
+  {id:"g3",p:"1A",fr:"un verre",de:"ein Glas"},
+  {id:"g4",p:"1A",fr:"une table",de:"ein Tisch"},
+  {id:"g5",p:"1A",fr:"un saladier",de:"eine Salatschüssel"},
+  {id:"g6",p:"1A",fr:"une casserole",de:"eine Pfanne"},
+  {id:"g7",p:"1A",fr:"une cuillère",de:"ein Löffel"},
+  {id:"g8",p:"1A",fr:"un mouchoir",de:"ein Taschentuch"},
+  {id:"g9",p:"1A",fr:"une feuille",de:"ein Blatt Papier"},
+  {id:"g10",p:"1A",fr:"un élastique",de:"ein Gummi(band)"},
+  {id:"g11",p:"1A",fr:"un œuf",de:"ein Ei"},
+  {id:"g12",p:"1A",fr:"des ciseaux",de:"eine Schere"},
+
+  {id:"h1",p:"1B",fr:"Tu fais quoi?",de:"Was machst du?"},
+  {id:"h2",p:"1B",fr:"Je fais une expérience.",de:"Ich mache ein Experiment."},
+  {id:"h3",p:"1B",fr:"Tu aimerais m'aider?",de:"Möchtest du mir helfen?"},
+  {id:"h4",p:"1B",fr:"Oui, volontiers.",de:"Ja, gerne."},
+  {id:"h5",p:"1B",fr:"Que se passe-t-il avec l'œuf?",de:"Was geschieht mit dem Ei?"},
+  {id:"h6",p:"1B",fr:"Que se passe-t-il avec …?",de:"Was geschieht mit …?"},
+  {id:"h7",p:"1B",fr:"Pourquoi faut-il remplir le verre?",de:"Warum muss man das Glas füllen?"},
+  {id:"h8",p:"1B",fr:"Pourquoi?",de:"Warum?"},
+
   /* Englisch Unit 1 – Feld "fr" enthält hier das Englische (Fremdsprache) */
   {id:"e1",p:"E1",m:1,fr:"name",de:"der Name",ex:"What's your name?"},
   {id:"e2",p:"E1",m:1,fr:"family",de:"die Familie",ex:"My family name is Konar."},
@@ -387,7 +414,9 @@ const FIXES = [
   {id:"f1",card:"a4",field:"fr",orig:"Il y a beaucoup des cheveaux.",
    why:"Nach «beaucoup» steht «de», nicht «des». Und «cheveux» heisst Haare, Pferde sind «chevaux»."},
   {id:"f2",card:"b6",field:"fr",orig:"impresionnant",why:"Mit Doppel-s: impressionnant."},
-  {id:"f3",card:"b3",field:"de",orig:"Man kann eine Vorsrtellung sehen.",why:"Buchstabendreher: Vorstellung."}
+  {id:"f3",card:"b3",field:"de",orig:"Man kann eine Vorsrtellung sehen.",why:"Buchstabendreher: Vorstellung."},
+  {id:"f4",card:"h2",field:"fr",orig:"Je fais une éxperience.",
+   why:"Der Akzent gehört auf das zweite e: ex-pé-rience. Auf dem «e» vor «x» steht nie ein Akzent."}
 ];
 
 const GAPS = [
@@ -414,6 +443,21 @@ const GAPS = [
   {p:"4B",pre:"au bord du ",ans:"lac",post:"",hint:"am Ufer des Sees"},
   {p:"4B",pre:"au bord de la ",ans:"rivière",post:"",hint:"am Ufer des Flusses"},
   {p:"4B",pre:"en ",ans:"Suisse",post:"",hint:"in der Schweiz"},
+
+  {p:"1A",pre:"Il te ",ans:"faut",post:" une assiette.",hint:"Du brauchst einen Teller."},
+  {p:"1A",pre:"Il te faut une ",ans:"assiette",post:".",hint:"Du brauchst einen Teller."},
+  {p:"1A",pre:"Il te faut un ",ans:"verre",post:".",hint:"Du brauchst ein Glas."},
+  {p:"1A",pre:"Il te faut une ",ans:"cuillère",post:".",hint:"Du brauchst einen Löffel."},
+  {p:"1A",pre:"Il te faut une ",ans:"feuille",post:".",hint:"Du brauchst ein Blatt Papier."},
+  {p:"1A",pre:"Il te faut un ",ans:"œuf",post:".",hint:"Du brauchst ein Ei."},
+  {p:"1A",pre:"Il te faut des ",ans:"ciseaux",post:".",hint:"Du brauchst eine Schere."},
+  {p:"1B",pre:"Tu ",ans:"fais",post:" quoi?",hint:"Was machst du?"},
+  {p:"1B",pre:"Je fais une ",ans:"expérience",post:".",hint:"Ich mache ein Experiment."},
+  {p:"1B",pre:"Tu aimerais m'",ans:"aider",post:"?",hint:"Möchtest du mir helfen?"},
+  {p:"1B",pre:"Oui, ",ans:"volontiers",post:".",hint:"Ja, gerne."},
+  {p:"1B",pre:"Que se passe-t-il avec l'",ans:"œuf",post:"?",hint:"Was geschieht mit dem Ei?"},
+  {p:"1B",pre:"Pourquoi faut-il ",ans:"remplir",post:" le verre?",hint:"Warum muss man das Glas füllen?"},
+  {p:"1B",pre:"",ans:"Pourquoi",post:" faut-il remplir le verre?",hint:"Warum muss man das Glas füllen?"},
 
   /* Englisch: Beispielsätze aus dem Buch, das fett gedruckte Wort fehlt */
   {p:"E1",c:"e1",pre:"What's your ",ans:"name",post:"?",hint:"der Name"},
@@ -474,7 +518,20 @@ const GENUS = [
   {p:"4B",w:"rivière",de:"Fluss",g:"f",src:"aus den Sätzen"},
   {p:"4B",w:"bord",de:"Ufer",g:"m",src:"aus den Sätzen"},
   {p:"4B",w:"Suisse",de:"Schweiz",g:"f",src:"aus den Sätzen"},
-  {p:"4B",w:"France",de:"Frankreich",g:"f",src:"aus den Sätzen"}
+  {p:"4B",w:"France",de:"Frankreich",g:"f",src:"aus den Sätzen"},
+
+  {p:"1A",w:"assiette",de:"Teller",g:"f",src:"Blatt"},
+  {p:"1A",w:"verre",de:"Glas",g:"m",src:"Blatt"},
+  {p:"1A",w:"table",de:"Tisch",g:"f",src:"Blatt"},
+  {p:"1A",w:"saladier",de:"Salatschüssel",g:"m",src:"Blatt"},
+  {p:"1A",w:"casserole",de:"Pfanne",g:"f",src:"Blatt"},
+  {p:"1A",w:"cuillère",de:"Löffel",g:"f",src:"Blatt"},
+  {p:"1A",w:"mouchoir",de:"Taschentuch",g:"m",src:"Blatt"},
+  {p:"1A",w:"feuille",de:"Blatt Papier",g:"f",src:"Blatt"},
+  {p:"1A",w:"élastique",de:"Gummiband",g:"m",src:"Blatt"},
+  {p:"1A",w:"œuf",de:"Ei",g:"m",src:"Blatt"},
+  {p:"1A",w:"ciseaux",de:"Schere",g:"m",src:"Blatt"},
+  {p:"1B",w:"expérience",de:"Experiment",g:"f",src:"Blatt"}
 ];
 
 /* Aktiver Fixpunkt: gewählt oder der nächste anstehende */
@@ -543,7 +600,7 @@ document.addEventListener("click", e => {
   if (b) say(b.dataset.say, b.dataset.lang);
 });
 const shuffle = a => { for (let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; };
-const norm = s => s.trim().toLowerCase().replace(/\s+/g," ").replace(/[’']/g,"'");
+const norm = s => s.trim().toLowerCase().replace(/œ/g,"oe").replace(/æ/g,"ae").replace(/\s+/g," ").replace(/[’']/g,"'");
 const noAcc = s => norm(s).normalize("NFD").replace(/[̀-ͯ]/g,"");
 
 /* ---------- Fixpunkt ---------- */
@@ -630,6 +687,7 @@ let round = null;
    spielen keine Rolle. Bei «a/b» zählt a, b oder beides. */
 function cleanAns(s){
   return s.normalize("NFC").toLowerCase()
+    .replace(/œ/g,"oe").replace(/æ/g,"ae")
     .replace(/[’`´]/g,"'").replace(/\.\.\.|…/g," ")
     .replace(/[.,!?;:«»"]/g," ").replace(/\s*'\s*/g,"'")
     .replace(/\s+/g," ").trim();
@@ -642,8 +700,10 @@ function variants(t){
     const m = x.match(/(\S+)\/(\S+)/);
     if (m) out.push(x.replace(m[0], m[1]), x.replace(m[0], m[2]));
   });
-  // deutscher Artikel darf fehlen: «Name» statt «der Name»
-  out.slice().forEach(x => { const m = x.match(/^(der|die|das) (.+)$/i); if (m) out.push(m[2]); });
+  // Klammern sind optional: «Gummi(band)» = «Gummi» oder «Gummiband»
+  out.slice().forEach(x => { if (/\(([^)]*)\)/.test(x)) out.push(x.replace(/\(([^)]*)\)/g, ""), x.replace(/\(([^)]*)\)/g, "$1")); });
+  // deutscher Artikel darf fehlen: «Name» statt «der Name», «Glas» statt «ein Glas»
+  out.slice().forEach(x => { const m = x.match(/^(der|die|das|ein|eine|einen) (.+)$/i); if (m) out.push(m[2]); });
   return out;
 }
 const stripAcc = s => s.normalize("NFD").replace(/[̀-ͯ]/g,"");
@@ -659,7 +719,7 @@ function pool(){
 }
 function renderSetup(){
   $("#packChips").innerHTML = FP.packs.map(p =>
-    `<button class="chip" data-pack="${p}" aria-pressed="${sel.packs.has(p)}">${esc(PK(p).title)} · ${esc(PK(p).sub)}</button>`).join("");
+    `<button class="chip" data-pack="${p}" aria-pressed="${sel.packs.has(p)}">${esc(PK(p).title)}${PK(p).sub ? " · " + esc(PK(p).sub) : ""}</button>`).join("");
   document.querySelectorAll("[data-pack]").forEach(b => b.onclick = () => {
     sel.packs.has(b.dataset.pack) ? sel.packs.delete(b.dataset.pack) : sel.packs.add(b.dataset.pack);
     renderSetup();
@@ -1019,7 +1079,8 @@ function renderGap(){
 const newGenRound = (idx = fpGenusIdx()) => ({order: shuffle([...idx]), i:0, done:false, res:{}});
 let gen = newGenRound();
 function art(x){
-  const vowel = /^[aeiouh]/.test(x.w);
+  if (x.w === "ciseaux") return "les ciseaux · des ciseaux (männlich, Mehrzahl)";
+  const vowel = /^[aeiouhàâéèêëîïôœùû]/i.test(x.w);
   if (x.g==="m/f") return `${vowel?"l'":"le/la "}${x.w} · un/une ${x.w}`;
   if (x.g==="m") return `${vowel?"l'":"le "}${x.w} · un ${x.w}`;
   return `${vowel?"l'":"la "}${x.w} · une ${x.w}`;
@@ -1087,7 +1148,7 @@ function renderSheet(){
       <div class="pack">
         <div class="pack-h">
           <label><input type="checkbox" class="pick" data-pick-pack="${p}" ${k === cs.length ? "checked" : ""} aria-label="Alle in ${esc(PK(p).title)} auswählen"><h3>${esc(PK(p).title)}</h3></label>
-          <span class="eyebrow">${esc(PK(p).sub)} · <span class="num">${k}/${cs.length}</span></span>
+          <span class="eyebrow">${PK(p).sub ? esc(PK(p).sub) + " · " : ""}<span class="num">${k}/${cs.length}</span></span>
         </div>
         ${cs.map(c => {
           const f = FIXES.find(x => x.card===c.id);
